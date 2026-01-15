@@ -9,6 +9,10 @@ export default function Overlay() {
   const [state, setState] = useState<State>({ waiting: [], totalWaiting: 0 });
 
   useEffect(() => {
+    // Maak body transparant voor overlay
+    document.body.style.background = "transparent";
+    document.documentElement.style.background = "transparent";
+    
     const fetchState = async () => {
       const r = await fetch("/api/queue/public-state");
       const j = await r.json();
@@ -36,11 +40,12 @@ export default function Overlay() {
         justifyContent: "flex-start",
         padding: 40,
         fontFamily: "Arial, sans-serif",
+        fontWeight: "bold",
       }}
     >
       <div
         style={{
-          fontWeight: 800,
+          fontWeight: "bold",
           fontSize: 52,
           lineHeight: 1.05,
           fontFamily: "Arial, sans-serif",
@@ -50,6 +55,7 @@ export default function Overlay() {
           style={{ 
             marginBottom: 18,
             color: "#FFD400",
+            fontWeight: "bold",
             WebkitTextStroke: "3px black",
             textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
           }}
@@ -60,7 +66,7 @@ export default function Overlay() {
         {names.length === 0 ? (
           <div 
             style={{ 
-              fontWeight: 700, 
+              fontWeight: "bold", 
               fontSize: 44,
               color: "#FFD400",
               WebkitTextStroke: "3px black",
@@ -75,7 +81,7 @@ export default function Overlay() {
               <div key={i}>
                 <span
                   style={{ 
-                    fontWeight: 700, 
+                    fontWeight: "bold", 
                     fontSize: 44,
                     color: "#FFD400",
                     backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -92,7 +98,7 @@ export default function Overlay() {
               <div style={{ marginTop: "4px" }}>
                 <span
                   style={{ 
-                    fontWeight: 700, 
+                    fontWeight: "bold", 
                     fontSize: 40,
                     color: "black",
                     backgroundColor: "#FFD400",
