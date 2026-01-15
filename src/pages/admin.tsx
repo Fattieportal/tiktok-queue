@@ -373,22 +373,22 @@ export default function Admin() {
                     {state.waiting.map((person, index) => (
                       <li
                         key={person.id}
-                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all group"
+                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
                       >
                         <span className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-purple-500/30 text-purple-200 rounded-full text-xs sm:text-sm font-bold">
                           {index + 1}
                         </span>
-                        <span className="text-white font-medium text-sm sm:text-base flex-1">{person.first_name}</span>
+                        <span className="text-white font-medium text-sm sm:text-base flex-1 min-w-0 truncate">{person.first_name}</span>
                         <button
                           onClick={() => {
                             const ok = window.confirm(`Weet je zeker dat je ${person.first_name} uit de wachtrij wilt verwijderen?`);
                             if (ok) void post("/api/queue/remove", { id: person.id });
                           }}
                           disabled={isLoading}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs font-medium disabled:opacity-50"
+                          className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-500/30 hover:border-red-500/50"
                           title="Verwijder uit wachtrij"
                         >
-                          ✕
+                          <span className="text-base sm:text-lg font-bold">×</span>
                         </button>
                       </li>
                     ))}
