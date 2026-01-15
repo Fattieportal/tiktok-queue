@@ -5,8 +5,8 @@ type State = { active: Row | null; waiting: Row[]; totalWaiting: number };
 
 export default function Admin() {
   const [state, setState] = useState<State>({ active: null, waiting: [], totalWaiting: 0 });
+  const [manualName, setManualName] = useState<string>("");
 
-  // Read admin key from URL (no setState needed)
   const adminKey = useMemo(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("key") ?? "";
@@ -15,7 +15,6 @@ export default function Admin() {
   const load = useCallback(async () => {
     const r = await fetch("/api/queue/state");
     const j = await r.json();
-
     setState({
       active: j.active ?? null,
       waiting: j.waiting ?? [],
@@ -24,15 +23,8 @@ export default function Admin() {
   }, []);
 
   useEffect(() => {
-    // Defer the first load so it's not synchronous in the effect body (satisfies strict lint rule)
-    const t = window.setTimeout(() => {
-      void load();
-    }, 0);
-
-    const id = window.setInterval(() => {
-      void load();
-    }, 1500);
-
+    const t = window.setTimeout(() => void load(), 0);
+    const id = window.setInterval(() => void load(), 1500);
     return () => {
       window.clearTimeout(t);
       window.clearInterval(id);
@@ -40,17 +32,22 @@ export default function Admin() {
   }, [load]);
 
   const post = useCallback(
-    async (path: string) => {
+    async (path: string, body?: unknown) => {
       if (!adminKey) {
         alert("Admin key ontbreekt. Open: /admin?key=JOUW_ADMIN_KEY");
         return;
       }
 
-      const r = await fetch(`${path}?key=${encodeURIComponent(adminKey)}`, { method: "POST" });
+      const r = await fetch(`${path}?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
 
       if (!r.ok) {
         const t = await r.text();
         alert(`Error (${r.status}): ${t}`);
+        return;
       }
 
       await load();
@@ -67,12 +64,50 @@ export default function Admin() {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <button onClick={() => void post("/api/queue/next")} style={{ marginRight: 12 }} disabled={!adminKey}>
+        <button onClick={() => void post("/api/queue/next")} style={{ marginRight: 10 }} disabled={!adminKey}>
           Next
         </button>
-        <button onClick={() => void post("/api/queue/skip")} disabled={!adminKey}>
+        <button onClick={() => void post("/api/queue/skip")} style={{ marginRight: 10 }} disabled={!adminKey}>
           Skip
         </button>
+
+        <button
+          onClick={() => {
+            const ok = window.confirm("Weet je zeker dat je de hele wachtrij wilt resetten?");
+            if (ok) void post("/api/queue/reset");
+          }}
+          style={{ marginRight: 10 }}
+          disabled={!adminKey}
+        >
+          Reset
+        </button>
+
+        <button onClick={() => void post("/api/queue/undo")} disabled={!adminKey}>
+          Undo
+        </button>
+      </div>
+
+      <div style={{ marginBottom: 18 }}>
+        <strong>Handmatig toevoegen:</strong>
+        <div style={{ marginTop: 8 }}>
+          <input
+            value={manualName}
+            onChange={(e) => setManualName(e.target.value)}
+            placeholder="Voornaam (bijv. Piet)"
+            style={{ padding: 8, width: 260, marginRight: 10 }}
+          />
+          <button
+            onClick={() => {
+              const name = manualName.trim();
+              if (!name) return;
+              setManualName("");
+              void post("/api/queue/add", { firstName: name });
+            }}
+            disabled={!adminKey}
+          >
+            Add
+          </button>
+        </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>

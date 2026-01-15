@@ -1,23 +1,30 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/db";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { data: active } = await supabase
+export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
+  const active = await supabaseAdmin
     .from("queue_entries")
-    .select("id, first_name")
+    .select("id,first_name")
     .eq("status", "active")
     .order("created_at", { ascending: true })
-    .limit(1);
+    .order("id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
-  const { data: waiting } = await supabase
+  if (active.error) return res.status(500).send(active.error.message);
+
+  const waiting = await supabaseAdmin
     .from("queue_entries")
-    .select("id, first_name")
+    .select("id,first_name")
     .eq("status", "waiting")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
 
-  res.status(200).json({
-    active: active?.[0] ?? null,
-    waiting: waiting ?? [],
-    totalWaiting: waiting?.length ?? 0,
+  if (waiting.error) return res.status(500).send(waiting.error.message);
+
+  return res.status(200).json({
+    active: active.data ?? null,
+    waiting: waiting.data ?? [],
+    totalWaiting: (waiting.data ?? []).length,
   });
 }

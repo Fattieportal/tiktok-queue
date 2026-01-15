@@ -1,54 +1,66 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/db";
 
-function isAdmin(req: NextApiRequest) {
-  const key = req.query.key;
-  return typeof key === "string" && key === process.env.ADMIN_KEY;
+function getAdminKey(req: NextApiRequest): string {
+  const v = req.query.key;
+  return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
+}
+
+function isAuthorized(req: NextApiRequest): boolean {
+  const expected = process.env.ADMIN_KEY ?? "";
+  return Boolean(expected) && getAdminKey(req) === expected;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
-  if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-  // 1) Mark current active as done (if any)
-  const { data: activeRow, error: activeErr } = await supabase
+  // Find current active (oldest)
+  const active = await supabaseAdmin
     .from("queue_entries")
     .select("id")
     .eq("status", "active")
     .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle<{ id: number }>();
 
-  if (activeErr) return res.status(500).json({ ok: false, error: activeErr });
+  if (active.error) return res.status(500).json({ ok: false, error: active.error.message });
 
-  if (activeRow?.id) {
-    const { error: doneErr } = await supabase
-      .from("queue_entries")
-      .update({ status: "done" })
-      .eq("id", activeRow.id);
+  const prevActiveId: number | null = active.data?.id ?? null;
 
-    if (doneErr) return res.status(500).json({ ok: false, error: doneErr });
+  // Mark current active as done
+  if (prevActiveId) {
+    const done = await supabaseAdmin.from("queue_entries").update({ status: "done" }).eq("id", prevActiveId);
+    if (done.error) return res.status(500).json({ ok: false, error: done.error.message });
   }
 
-  // 2) Promote next waiting to active (if any)
-  const { data: nextRow, error: nextErr } = await supabase
+  // Promote oldest waiting to active
+  const next = await supabaseAdmin
     .from("queue_entries")
     .select("id")
     .eq("status", "waiting")
     .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle<{ id: number }>();
 
-  if (nextErr) return res.status(500).json({ ok: false, error: nextErr });
+  if (next.error) return res.status(500).json({ ok: false, error: next.error.message });
 
-  if (nextRow?.id) {
-    const { error: promoteErr } = await supabase
-      .from("queue_entries")
-      .update({ status: "active" })
-      .eq("id", nextRow.id);
+  const newActiveId: number | null = next.data?.id ?? null;
 
-    if (promoteErr) return res.status(500).json({ ok: false, error: promoteErr });
+  if (newActiveId) {
+    const upd = await supabaseAdmin.from("queue_entries").update({ status: "active" }).eq("id", newActiveId);
+    if (upd.error) return res.status(500).json({ ok: false, error: upd.error.message });
   }
 
-  return res.status(200).json({ ok: true });
+  // Log action for undo
+  const log = await supabaseAdmin.from("queue_actions").insert({
+    action_type: "next",
+    payload: { prevActiveId, newActiveId },
+  });
+
+  if (log.error) return res.status(500).json({ ok: false, error: log.error.message });
+
+  return res.status(200).json({ ok: true, prevActiveId, newActiveId });
 }

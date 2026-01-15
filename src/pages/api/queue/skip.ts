@@ -1,54 +1,46 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/db";
 
-function isAdmin(req: NextApiRequest) {
-  const key = req.query.key;
-  return typeof key === "string" && key === process.env.ADMIN_KEY;
+function getAdminKey(req: NextApiRequest): string {
+  const v = req.query.key;
+  return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
 }
 
+function isAuthorized(req: NextApiRequest): boolean {
+  const expected = process.env.ADMIN_KEY ?? "";
+  return Boolean(expected) && getAdminKey(req) === expected;
+}
+
+type IdRow = { id: number };
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
-  if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-  // 1) Mark current active as skipped (if any)
-  const { data: activeRow, error: activeErr } = await supabase
-    .from("queue_entries")
-    .select("id")
-    .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (activeErr) return res.status(500).json({ ok: false, error: activeErr });
-
-  if (activeRow?.id) {
-    const { error: skipErr } = await supabase
-      .from("queue_entries")
-      .update({ status: "skipped" })
-      .eq("id", activeRow.id);
-
-    if (skipErr) return res.status(500).json({ ok: false, error: skipErr });
-  }
-
-  // 2) Promote next waiting to active (if any)
-  const { data: nextRow, error: nextErr } = await supabase
+  // Oldest waiting
+  const w = await supabaseAdmin
     .from("queue_entries")
     .select("id")
     .eq("status", "waiting")
     .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle<IdRow>();
 
-  if (nextErr) return res.status(500).json({ ok: false, error: nextErr });
+  if (w.error) return res.status(500).json({ ok: false, error: w.error.message });
+  if (!w.data) return res.status(200).json({ ok: true, skipped: false });
 
-  if (nextRow?.id) {
-    const { error: promoteErr } = await supabase
-      .from("queue_entries")
-      .update({ status: "active" })
-      .eq("id", nextRow.id);
+  const skippedId = w.data.id;
 
-    if (promoteErr) return res.status(500).json({ ok: false, error: promoteErr });
-  }
+  const upd = await supabaseAdmin.from("queue_entries").update({ status: "skipped" }).eq("id", skippedId);
+  if (upd.error) return res.status(500).json({ ok: false, error: upd.error.message });
 
-  return res.status(200).json({ ok: true });
+  const log = await supabaseAdmin.from("queue_actions").insert({
+    action_type: "skip",
+    payload: { skippedId },
+  });
+
+  if (log.error) return res.status(500).json({ ok: false, error: log.error.message });
+
+  return res.status(200).json({ ok: true, skipped: true, skippedId });
 }
