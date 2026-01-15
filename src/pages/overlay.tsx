@@ -40,26 +40,68 @@ export default function Overlay() {
     >
       <div
         style={{
-          color: "#FFD400", // geel (pas aan naar hun exact geel)
           fontWeight: 800,
           fontSize: 52,
           lineHeight: 1.05,
-          textShadow: "0 2px 8px rgba(0,0,0,0.35)",
+          fontFamily: "Arial, sans-serif",
         }}
       >
-        <div style={{ marginBottom: 18 }}>Wachtrij:</div>
+        <div 
+          style={{ 
+            marginBottom: 18,
+            color: "#FFD400",
+            WebkitTextStroke: "3px black",
+            textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
+          }}
+        >
+          Wachtrij:
+        </div>
 
         {names.length === 0 ? (
-          <div style={{ fontWeight: 700, fontSize: 44 }}>Geen openstaande</div>
+          <div 
+            style={{ 
+              fontWeight: 700, 
+              fontSize: 44,
+              color: "#FFD400",
+              WebkitTextStroke: "3px black",
+              textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
+            }}
+          >
+            Geen openstaande
+          </div>
         ) : (
           <>
             {shown.map((n, i) => (
-              <div key={i} style={{ fontWeight: 700, fontSize: 44, marginBottom: 8 }}>
+              <div 
+                key={i} 
+                style={{ 
+                  fontWeight: 700, 
+                  fontSize: 44, 
+                  marginBottom: 8,
+                  color: "#FFD400",
+                  backgroundColor: "rgba(0, 0, 0, 0.6)",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  display: "inline-block",
+                  WebkitTextStroke: "2px black",
+                }}
+              >
                 {n}
               </div>
             ))}
             {remaining > 0 && (
-              <div style={{ fontWeight: 700, fontSize: 40, marginTop: 10 }}>
+              <div 
+                style={{ 
+                  fontWeight: 700, 
+                  fontSize: 40, 
+                  marginTop: 10,
+                  color: "black",
+                  backgroundColor: "#FFD400",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  display: "inline-block",
+                }}
+              >
                 En nog {remaining} meer...
               </div>
             )}
