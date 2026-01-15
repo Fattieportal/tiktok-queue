@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Clear them
   if (ids.length > 0) {
-    const upd = await supabaseAdmin.from("queue_entries").update({ status: "cleared" }).in("id", ids);
+    const upd = await supabaseAdmin.from("queue_entries").update({ status: "done" }).in("id", ids);
     if (upd.error) return res.status(500).json({ ok: false, error: upd.error.message });
   }
 
