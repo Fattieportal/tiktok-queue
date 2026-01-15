@@ -14,8 +14,8 @@ export default function Admin() {
   const [authError, setAuthError] = useState<string>("");
 
   const load = useCallback(async () => {
-    if (!isAuthenticated) return;
-    const r = await fetch("/api/queue/state");
+    if (!isAuthenticated || !adminKey) return;
+    const r = await fetch(`/api/queue/state?key=${encodeURIComponent(adminKey)}`);
     const j = await r.json();
     setState({
       active: j.active ?? null,
@@ -23,7 +23,7 @@ export default function Admin() {
       totalWaiting: j.totalWaiting ?? 0,
     });
     setLastUpdate(new Date());
-  }, [isAuthenticated]);
+  }, [isAuthenticated, adminKey]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
