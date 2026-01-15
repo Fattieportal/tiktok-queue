@@ -10,7 +10,7 @@ export default function Overlay() {
 
   useEffect(() => {
     const fetchState = async () => {
-      const r = await fetch("/api/queue/state");
+      const r = await fetch("/api/queue/public-state");
       const j = await r.json();
       setState({ waiting: j.waiting ?? [], totalWaiting: j.totalWaiting ?? 0 });
     };
