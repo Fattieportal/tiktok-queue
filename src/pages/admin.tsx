@@ -1,52 +1,78 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Row = { id: number; first_name: string };
 type State = { active: Row | null; waiting: Row[]; totalWaiting: number };
 
 export default function Admin() {
   const [state, setState] = useState<State>({ active: null, waiting: [], totalWaiting: 0 });
-  const [key, setKey] = useState("");
 
-  useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get("key") ?? "";
-    setKey(k);
+  // Read admin key from URL (no setState needed)
+  const adminKey = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("key") ?? "";
   }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const r = await fetch("/api/queue/state");
     const j = await r.json();
+
     setState({
       active: j.active ?? null,
       waiting: j.waiting ?? [],
       totalWaiting: j.totalWaiting ?? 0,
     });
-  };
-
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 1500);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const post = async (path: string) => {
-    const r = await fetch(`${path}?key=${encodeURIComponent(key)}`, { method: "POST" });
-    if (!r.ok) {
-      const t = await r.text();
-      alert(`Error (${r.status}): ${t}`);
-    }
-    await load();
-  };
+  useEffect(() => {
+    // Defer the first load so it's not synchronous in the effect body (satisfies strict lint rule)
+    const t = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    const id = window.setInterval(() => {
+      void load();
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(t);
+      window.clearInterval(id);
+    };
+  }, [load]);
+
+  const post = useCallback(
+    async (path: string) => {
+      if (!adminKey) {
+        alert("Admin key ontbreekt. Open: /admin?key=JOUW_ADMIN_KEY");
+        return;
+      }
+
+      const r = await fetch(`${path}?key=${encodeURIComponent(adminKey)}`, { method: "POST" });
+
+      if (!r.ok) {
+        const t = await r.text();
+        alert(`Error (${r.status}): ${t}`);
+      }
+
+      await load();
+    },
+    [adminKey, load]
+  );
 
   return (
     <div style={{ padding: 24, fontFamily: "Arial, sans-serif" }}>
       <h1>Queue Admin</h1>
 
+      <div style={{ marginBottom: 10, opacity: 0.75 }}>
+        <strong>Key status:</strong> {adminKey ? "OK (key aanwezig)" : "MISSING (open /admin?key=...)"}
+      </div>
+
       <div style={{ marginBottom: 16 }}>
-        <button onClick={() => post("/api/queue/next")} style={{ marginRight: 12 }}>
+        <button onClick={() => void post("/api/queue/next")} style={{ marginRight: 12 }} disabled={!adminKey}>
           Next
         </button>
-        <button onClick={() => post("/api/queue/skip")}>Skip</button>
+        <button onClick={() => void post("/api/queue/skip")} disabled={!adminKey}>
+          Skip
+        </button>
       </div>
 
       <div style={{ marginBottom: 16 }}>
