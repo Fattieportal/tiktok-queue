@@ -1,7 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/db";
 
-export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
+function getAdminKey(req: NextApiRequest): string {
+  const v = req.query.key;
+  return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
+}
+
+function isAuthorized(req: NextApiRequest): boolean {
+  const expected = process.env.ADMIN_KEY ?? "";
+  return Boolean(expected) && getAdminKey(req) === expected;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
   const active = await supabaseAdmin
     .from("queue_entries")
     .select("id,first_name")
