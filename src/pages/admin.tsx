@@ -146,11 +146,11 @@ export default function Admin() {
 
         {/* Login Card */}
         <div className="relative w-full max-w-md">
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl ring-1 ring-white/20">
-            <div className="text-center mb-8">
-              <div className="text-6xl mb-4">🔐</div>
-              <h1 className="text-4xl font-bold text-white mb-2">Queue Admin</h1>
-              <p className="text-slate-300">Voer je admin key in om toegang te krijgen</p>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl ring-1 ring-white/20">
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="text-5xl sm:text-6xl mb-4">🔐</div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Queue Admin</h1>
+              <p className="text-sm sm:text-base text-slate-300">Voer je admin key in om toegang te krijgen</p>
             </div>
 
             <div className="space-y-4">
@@ -196,7 +196,7 @@ export default function Admin() {
             </div>
 
             <div className="mt-6 pt-6 border-t border-white/10">
-              <p className="text-sm text-slate-400 text-center">
+              <p className="text-xs sm:text-sm text-slate-400 text-center">
                 Geen toegang? Neem contact op met de administrator.
               </p>
             </div>
@@ -236,70 +236,70 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-5xl font-bold text-white mb-2 tracking-tight">
-            Queue Admin
-            <span className="ml-4 text-2xl">🎯</span>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2 tracking-tight flex flex-wrap items-center gap-2">
+            <span>Queue Admin</span>
+            <span className="text-xl sm:text-2xl">🎯</span>
           </h1>
-          <div className="flex items-center gap-4 mt-4">
-            <div className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4">
+            <div className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
               adminKey 
                 ? "bg-green-500/20 text-green-300 ring-1 ring-green-500/50" 
                 : "bg-red-500/20 text-red-300 ring-1 ring-red-500/50"
             }`}>
               {adminKey ? "✓ Geautoriseerd" : "⚠ Geen admin key"}
             </div>
-            <div className="text-sm text-slate-400">
-              Laatste update: {lastUpdate.toLocaleTimeString("nl-NL")}
+            <div className="text-xs sm:text-sm text-slate-400">
+              Update: {lastUpdate.toLocaleTimeString("nl-NL")}
             </div>
             <button
               onClick={handleLogout}
-              className="ml-auto px-4 py-2 bg-red-500/20 text-red-300 ring-1 ring-red-500/50 rounded-full text-sm font-medium hover:bg-red-500/30 transition-all"
+              className="px-3 sm:px-4 py-2 bg-red-500/20 text-red-300 ring-1 ring-red-500/50 rounded-full text-xs sm:text-sm font-medium hover:bg-red-500/30 transition-all"
             >
               Uitloggen
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left column - Controls */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Queue Controls */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <span className="text-2xl">🎮</span>
-                Wachtrij Beheer
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">🎮</span>
+                <span>Wachtrij Beheer</span>
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <button
                   onClick={() => void post("/api/queue/next")}
                   disabled={!adminKey || isLoading}
-                  className="group relative px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-green-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-green-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    ▶️ Next
+                  <span className="flex items-center justify-center gap-1 sm:gap-2">
+                    <span className="hidden sm:inline">▶️</span> Next
                   </span>
                 </button>
 
                 <button
                   onClick={() => void post("/api/queue/skip")}
                   disabled={!adminKey || isLoading}
-                  className="group relative px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-blue-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-blue-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    ⏭️ Skip
+                  <span className="flex items-center justify-center gap-1 sm:gap-2">
+                    <span className="hidden sm:inline">⏭️</span> Skip
                   </span>
                 </button>
 
                 <button
                   onClick={() => void post("/api/queue/undo")}
                   disabled={!adminKey || isLoading}
-                  className="group relative px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-amber-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-amber-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    ↩️ Undo
+                  <span className="flex items-center justify-center gap-1 sm:gap-2">
+                    <span className="hidden sm:inline">↩️</span> Undo
                   </span>
                 </button>
 
@@ -309,22 +309,22 @@ export default function Admin() {
                     if (ok) void post("/api/queue/reset");
                   }}
                   disabled={!adminKey || isLoading}
-                  className="group relative px-6 py-4 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-red-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-red-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    🔄 Reset
+                  <span className="flex items-center justify-center gap-1 sm:gap-2">
+                    <span className="hidden sm:inline">🔄</span> Reset
                   </span>
                 </button>
               </div>
             </div>
 
             {/* Manual Add */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <span className="text-2xl">➕</span>
-                Handmatig Toevoegen
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">➕</span>
+                <span>Handmatig Toevoegen</span>
               </h2>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <input
                   value={manualName}
                   onChange={(e) => setManualName(e.target.value)}
@@ -337,7 +337,7 @@ export default function Admin() {
                     }
                   }}
                   placeholder="Voornaam (bijv. Piet)"
-                  className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
                 />
                 <button
                   onClick={() => {
@@ -347,7 +347,7 @@ export default function Admin() {
                     void post("/api/queue/add", { firstName: name });
                   }}
                   disabled={!adminKey || isLoading || !manualName.trim()}
-                  className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-purple-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-purple-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap"
                 >
                   Toevoegen
                 </button>
@@ -355,17 +355,17 @@ export default function Admin() {
             </div>
 
             {/* Waiting List */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <span className="text-2xl">⏳</span>
-                Wachtend
-                <span className="ml-auto px-3 py-1 bg-purple-500/30 text-purple-200 text-sm font-bold rounded-full">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">⏳</span>
+                <span>Wachtend</span>
+                <span className="ml-auto px-2 sm:px-3 py-1 bg-purple-500/30 text-purple-200 text-xs sm:text-sm font-bold rounded-full">
                   {state.totalWaiting}
                 </span>
               </h2>
-              <div className="max-h-96 overflow-y-auto custom-scrollbar">
+              <div className="max-h-64 sm:max-h-96 overflow-y-auto custom-scrollbar">
                 {state.waiting.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400">
+                  <div className="text-center py-8 text-slate-400 text-sm sm:text-base">
                     Geen wachtende personen
                   </div>
                 ) : (
@@ -373,12 +373,12 @@ export default function Admin() {
                     {state.waiting.map((person, index) => (
                       <li
                         key={person.id}
-                        className="flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all group"
+                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
                       >
-                        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-purple-500/30 text-purple-200 rounded-full text-sm font-bold">
+                        <span className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-purple-500/30 text-purple-200 rounded-full text-xs sm:text-sm font-bold">
                           {index + 1}
                         </span>
-                        <span className="text-white font-medium">{person.first_name}</span>
+                        <span className="text-white font-medium text-sm sm:text-base">{person.first_name}</span>
                       </li>
                     ))}
                   </ol>
@@ -388,27 +388,27 @@ export default function Admin() {
           </div>
 
           {/* Right column - Status */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Active Person */}
-            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-purple-500/50">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <span className="text-2xl">👤</span>
-                Nu Actief
+            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-purple-500/50">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">👤</span>
+                <span>Nu Actief</span>
               </h2>
-              <div className="text-center py-8">
+              <div className="text-center py-6 sm:py-8">
                 {state.active ? (
                   <>
-                    <div className="text-6xl font-bold text-white mb-2 animate-pulse">
+                    <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-2 animate-pulse break-words">
                       {state.active.first_name}
                     </div>
-                    <div className="inline-block px-4 py-2 bg-green-500/30 text-green-200 rounded-full text-sm font-medium">
+                    <div className="inline-block px-3 sm:px-4 py-2 bg-green-500/30 text-green-200 rounded-full text-xs sm:text-sm font-medium">
                       🟢 Actief
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-6xl mb-2">—</div>
-                    <div className="inline-block px-4 py-2 bg-slate-500/30 text-slate-300 rounded-full text-sm font-medium">
+                    <div className="text-4xl sm:text-5xl lg:text-6xl mb-2">—</div>
+                    <div className="inline-block px-3 sm:px-4 py-2 bg-slate-500/30 text-slate-300 rounded-full text-xs sm:text-sm font-medium">
                       Niemand actief
                     </div>
                   </>
@@ -417,35 +417,21 @@ export default function Admin() {
             </div>
 
             {/* Stats */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <span className="text-2xl">📊</span>
-                Statistieken
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">📊</span>
+                <span>Statistieken</span>
               </h2>
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                  <span className="text-slate-300">Totaal wachtend:</span>
-                  <span className="text-2xl font-bold text-white">{state.totalWaiting}</span>
+                  <span className="text-slate-300 text-sm sm:text-base">Totaal wachtend:</span>
+                  <span className="text-xl sm:text-2xl font-bold text-white">{state.totalWaiting}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                  <span className="text-slate-300">Actief:</span>
-                  <span className="text-2xl font-bold text-white">{state.active ? "1" : "0"}</span>
+                  <span className="text-slate-300 text-sm sm:text-base">Actief:</span>
+                  <span className="text-xl sm:text-2xl font-bold text-white">{state.active ? "1" : "0"}</span>
                 </div>
               </div>
-            </div>
-
-            {/* Help */}
-            <div className="bg-blue-500/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-blue-500/30">
-              <h2 className="text-lg font-semibold text-blue-200 mb-3 flex items-center gap-2">
-                <span className="text-xl">ℹ️</span>
-                Help
-              </h2>
-              <p className="text-sm text-blue-200/80 leading-relaxed">
-                Open de admin pagina met:
-                <code className="block mt-2 px-3 py-2 bg-black/30 rounded-lg text-blue-300 font-mono text-xs">
-                  /admin?key=JOUW_ADMIN_KEY
-                </code>
-              </p>
             </div>
           </div>
         </div>
@@ -453,10 +439,10 @@ export default function Admin() {
         {/* Loading Overlay */}
         {isLoading && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl ring-1 ring-white/20">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl ring-1 ring-white/20">
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
-                <div className="text-white font-semibold">Bezig met laden...</div>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+                <div className="text-white font-semibold text-sm sm:text-base">Bezig met laden...</div>
               </div>
             </div>
           </div>
@@ -480,7 +466,7 @@ export default function Admin() {
           animation-delay: 4s;
         }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: rgba(255, 255, 255, 0.05);
