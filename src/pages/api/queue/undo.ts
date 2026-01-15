@@ -11,7 +11,7 @@ function isAuthorized(req: NextApiRequest): boolean {
   return Boolean(expected) && getAdminKey(req) === expected;
 }
 
-type ActionType = "next" | "skip" | "reset" | "add";
+type ActionType = "next" | "skip" | "reset" | "add" | "remove";
 
 type ActionRow = {
   id: number;
@@ -101,6 +101,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const u1 = await supabaseAdmin.from("queue_entries").update({ status: prevStatus }).eq("id", id);
         if (u1.error) return res.status(500).json({ ok: false, error: u1.error.message });
       }
+    }
+  }
+
+  if (action.action_type === "remove") {
+    const removedId = toNumberOrNull(payload["removedId"]);
+    const previousStatus = payload["previousStatus"];
+    if (removedId !== null && typeof previousStatus === "string") {
+      const u1 = await supabaseAdmin.from("queue_entries").update({ status: previousStatus }).eq("id", removedId);
+      if (u1.error) return res.status(500).json({ ok: false, error: u1.error.message });
     }
   }
 
