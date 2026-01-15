@@ -70,42 +70,41 @@ export default function Overlay() {
             Geen openstaande
           </div>
         ) : (
-          <>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {shown.map((n, i) => (
-              <div 
-                key={i} 
-                style={{ 
-                  fontWeight: 700, 
-                  fontSize: 44, 
-                  marginBottom: 8,
-                  color: "#FFD400",
-                  backgroundColor: "rgba(0, 0, 0, 0.6)",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  display: "inline-block",
-                  WebkitTextStroke: "2px black",
-                }}
-              >
-                {n}
+              <div key={i}>
+                <span
+                  style={{ 
+                    fontWeight: 700, 
+                    fontSize: 44,
+                    color: "#FFD400",
+                    backgroundColor: "rgba(0, 0, 0, 0.6)",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    WebkitTextStroke: "2px black",
+                  }}
+                >
+                  {n}
+                </span>
               </div>
             ))}
             {remaining > 0 && (
-              <div 
-                style={{ 
-                  fontWeight: 700, 
-                  fontSize: 40, 
-                  marginTop: 10,
-                  color: "black",
-                  backgroundColor: "#FFD400",
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  display: "inline-block",
-                }}
-              >
-                En nog {remaining} meer...
+              <div style={{ marginTop: "4px" }}>
+                <span
+                  style={{ 
+                    fontWeight: 700, 
+                    fontSize: 40,
+                    color: "black",
+                    backgroundColor: "#FFD400",
+                    padding: "10px 20px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  En nog {remaining} meer...
+                </span>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
