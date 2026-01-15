@@ -13,6 +13,32 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>("");
 
+  // Check localStorage voor opgeslagen admin key bij mount
+  useEffect(() => {
+    const storedKey = localStorage.getItem("adminKey");
+    if (storedKey) {
+      // Valideer de opgeslagen key automatisch
+      const validateStoredKey = async () => {
+        setIsLoading(true);
+        try {
+          const r = await fetch(`/api/queue/state?key=${encodeURIComponent(storedKey)}`);
+          if (r.ok) {
+            setAdminKey(storedKey);
+            setIsAuthenticated(true);
+          } else {
+            // Key is niet meer geldig, verwijder uit localStorage
+            localStorage.removeItem("adminKey");
+          }
+        } catch {
+          localStorage.removeItem("adminKey");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      void validateStoredKey();
+    }
+  }, []);
+
   const load = useCallback(async () => {
     if (!isAuthenticated || !adminKey) return;
     const r = await fetch(`/api/queue/state?key=${encodeURIComponent(adminKey)}`);
@@ -83,6 +109,8 @@ export default function Admin() {
         setAdminKey(key);
         setIsAuthenticated(true);
         setKeyInput("");
+        // Sla key op in localStorage voor volgende sessie
+        localStorage.setItem("adminKey", key);
       } else if (r.status === 401) {
         setAuthError("Ongeldige admin key");
       } else {
@@ -99,6 +127,8 @@ export default function Admin() {
     setIsAuthenticated(false);
     setAdminKey("");
     setAuthError("");
+    // Verwijder key uit localStorage bij uitloggen
+    localStorage.removeItem("adminKey");
   };
 
   // Login scherm
