@@ -475,11 +475,18 @@ export default function Admin() {
                 const shop = shops.find(s => s.id === e.target.value);
                 setSelectedShop(shop || null);
               }}
-              className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:bg-white/15 transition-all"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 0.75rem center',
+                backgroundSize: '1.5rem',
+                paddingRight: '2.5rem'
+              }}
             >
-              <option value="">Selecteer een shop...</option>
+              <option value="" className="bg-slate-900 text-slate-400">Selecteer een shop...</option>
               {shops.map((shop) => (
-                <option key={shop.id} value={shop.id} className="bg-slate-800">
+                <option key={shop.id} value={shop.id} className="bg-slate-900 text-white py-2">
                   {shop.display_name}
                 </option>
               ))}
