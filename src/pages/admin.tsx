@@ -192,7 +192,7 @@ export default function Admin() {
         const err = await r.json();
         alert(`Fout: ${err.error || "Onbekende fout"}`);
       }
-    } catch (err) {
+    } catch {
       alert("Fout bij het aanmaken van shop");
     } finally {
       setIsLoading(false);
