@@ -1,11 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import type { PageConfig } from "next";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/db";
 
-export const config: PageConfig = {
+export const config = {
   api: { 
-    bodyParser: false, // IMPORTANT for Shopify HMAC verification
+    bodyParser: false,
   },
 };
 
