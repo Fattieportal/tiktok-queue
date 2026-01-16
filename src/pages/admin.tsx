@@ -515,6 +515,30 @@ export default function Admin() {
               ))}
             </select>
           </div>
+
+          {selectedShop && (
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => {
+                  const overlayUrl = `${window.location.origin}/overlay?shopId=${selectedShop.id}`;
+                  navigator.clipboard.writeText(overlayUrl);
+                  alert(`Overlay URL gekopieerd voor ${selectedShop.display_name}!\n\n${overlayUrl}`);
+                }}
+                className="flex-1 px-4 py-2.5 bg-purple-500/20 text-purple-300 ring-1 ring-purple-500/50 rounded-xl hover:bg-purple-500/30 transition-all flex items-center justify-center gap-2 font-medium"
+              >
+                <span>📋</span>
+                <span>Kopieer Overlay URL</span>
+              </button>
+              <button
+                onClick={() => {
+                  window.open(`/overlay?shopId=${selectedShop.id}`, '_blank');
+                }}
+                className="px-4 py-2.5 bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/50 rounded-xl hover:bg-blue-500/30 transition-all font-medium"
+              >
+                🔗 Open
+              </button>
+            </div>
+          )}
         </div>
 
         {!selectedShop ? (
