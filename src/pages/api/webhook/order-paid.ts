@@ -64,32 +64,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Get shop domain from Shopify header
   const shopDomain = (req.headers["x-shopify-shop-domain"] as string | undefined) ?? null;
   
-  // DEBUG: Log what Shopify sends
-  console.log("[WEBHOOK DEBUG] Received shop domain:", shopDomain);
-  console.log("[WEBHOOK DEBUG] All headers:", JSON.stringify(req.headers, null, 2));
-  
   if (!shopDomain) {
     return res.status(400).json({ ok: false, error: "Missing x-shopify-shop-domain header" });
   }
 
-  // Find shop in database
-  const { data: shop, error: shopError } = await supabaseAdmin
+  // Probeer eerst te matchen op shopify_shop_domain
+  let { data: shop, error: shopError } = await supabaseAdmin
     .from("shops")
-    .select("id, name")
+    .select("id, name, shopify_shop_domain")
     .eq("shopify_shop_domain", shopDomain)
     .eq("is_active", true)
     .single();
 
+  // Als geen match, probeer dan shops met NULL shopify_shop_domain
+  // En match op basis van de environment variable naam
   if (shopError || !shop) {
-    console.log("[WEBHOOK DEBUG] Shop lookup failed. Looking for domain:", shopDomain);
-    console.log("[WEBHOOK DEBUG] Error:", shopError);
+    console.log("[WEBHOOK] No shop found with domain:", shopDomain);
+    console.log("[WEBHOOK] Checking shops with empty domain...");
+    
+    const { data: allShops } = await supabaseAdmin
+      .from("shops")
+      .select("id, name, shopify_shop_domain")
+      .is("shopify_shop_domain", null)
+      .eq("is_active", true);
+
+    if (allShops && allShops.length > 0) {
+      // Probeer te matchen met environment variables
+      for (const potentialShop of allShops) {
+        const secretKey = `SHOPIFY_SECRET_${potentialShop.name.toUpperCase()}`;
+        if (process.env[secretKey]) {
+          // Match gevonden! Update de shop met de domain
+          console.log(`[WEBHOOK] Auto-filling domain for shop ${potentialShop.name}: ${shopDomain}`);
+          
+          const { data: updatedShop } = await supabaseAdmin
+            .from("shops")
+            .update({ shopify_shop_domain: shopDomain })
+            .eq("id", potentialShop.id)
+            .select("id, name, shopify_shop_domain")
+            .single();
+          
+          if (updatedShop) {
+            shop = updatedShop;
+            shopError = null;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (shopError || !shop) {
+    console.log("[WEBHOOK] Shop lookup failed. Domain:", shopDomain);
     return res.status(404).json({ 
       ok: false, 
-      error: "Shop not found or inactive",
-      debug: {
-        searchedDomain: shopDomain,
-        error: shopError?.message
-      }
+      error: "Shop not found. Please create a shop with matching SHOPIFY_SECRET_<NAME> in environment variables.",
+      searchedDomain: shopDomain
     });
   }
 

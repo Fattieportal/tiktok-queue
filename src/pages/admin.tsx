@@ -20,7 +20,6 @@ export default function Admin() {
   // New shop form
   const [newShopName, setNewShopName] = useState<string>("");
   const [newShopDisplayName, setNewShopDisplayName] = useState<string>("");
-  const [newShopDomain, setNewShopDomain] = useState<string>("");
 
   // Check localStorage voor opgeslagen admin key bij mount
   useEffect(() => {
@@ -178,16 +177,14 @@ export default function Admin() {
         body: JSON.stringify({
           name: newShopName.trim(),
           displayName: newShopDisplayName.trim(),
-          shopifyShopDomain: newShopDomain.trim() || null,
         }),
       });
 
       if (r.ok) {
         setNewShopName("");
         setNewShopDisplayName("");
-        setNewShopDomain("");
         await loadShops();
-        alert("Shop succesvol aangemaakt!");
+        alert("Shop succesvol aangemaakt! De Shopify domain wordt automatisch ingevuld bij de eerste webhook.");
       } else {
         const err = await r.json();
         alert(`Fout: ${err.error || "Onbekende fout"}`);
@@ -361,13 +358,6 @@ export default function Admin() {
                 className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
-            <input
-              type="text"
-              value={newShopDomain}
-              onChange={(e) => setNewShopDomain(e.target.value)}
-              placeholder="Shopify Shop Domain (bijv: mysterybox-nl.myshopify.com)"
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
-            />
             <button
               onClick={handleCreateShop}
               disabled={isLoading}
@@ -375,8 +365,13 @@ export default function Admin() {
             >
               Shop Toevoegen
             </button>
-            <div className="mt-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-yellow-200 text-sm">
-              <strong>Vergeet niet:</strong> Voeg <code className="bg-black/30 px-2 py-1 rounded">SHOPIFY_SECRET_{newShopName.toUpperCase() || "SHOPNAME"}</code> toe aan je .env bestand!
+            <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-xl text-blue-200 text-sm space-y-2">
+              <div>
+                <strong>Stap 1:</strong> Voeg <code className="bg-black/30 px-2 py-1 rounded">SHOPIFY_SECRET_{newShopName.toUpperCase() || "SHOPNAME"}</code> toe aan je environment variables
+              </div>
+              <div>
+                <strong>Stap 2:</strong> De Shopify shop domain wordt <span className="text-green-300 font-semibold">automatisch ingevuld</span> bij de eerste webhook! 🎉
+              </div>
             </div>
           </div>
 
@@ -388,10 +383,14 @@ export default function Admin() {
                 <div key={shop.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
                   <div>
                     <div className="text-white font-semibold">{shop.display_name}</div>
-                    <div className="text-slate-400 text-sm">ID: {shop.name}</div>
-                    {shop.shopify_shop_domain && (
-                      <div className="text-slate-500 text-xs">{shop.shopify_shop_domain}</div>
-                    )}
+                    <div className="text-slate-400 text-sm">Technische naam: {shop.name}</div>
+                    <div className="text-slate-500 text-xs mt-1">
+                      {shop.shopify_shop_domain ? (
+                        <span className="text-green-400">✓ Domain: {shop.shopify_shop_domain}</span>
+                      ) : (
+                        <span className="text-yellow-400">⚠️ Domain wordt auto-ingevuld bij eerste webhook</span>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => handleDeleteShop(shop.id)}

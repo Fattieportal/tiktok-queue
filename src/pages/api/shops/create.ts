@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { name, displayName, shopifyShopDomain } = req.body;
+    const { name, displayName } = req.body;
 
     if (!name || !displayName) {
       return res.status(400).json({ error: "Name and displayName are required" });
@@ -25,12 +25,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Name moet lowercase en zonder spaties
     const normalizedName = name.toLowerCase().replace(/\s+/g, "_");
 
+    // shopify_shop_domain wordt automatisch ingevuld door de webhook bij eerste gebruik
     const { data: shop, error } = await supabase
       .from("shops")
       .insert({
         name: normalizedName,
         display_name: displayName,
-        shopify_shop_domain: shopifyShopDomain || null,
+        shopify_shop_domain: null, // Wordt auto-ingevuld bij eerste webhook
         is_active: true,
       })
       .select()
