@@ -11,6 +11,8 @@ type Shop = {
   primary_color?: string;
   text_color?: string;
   background_color?: string;
+  show_name_background?: boolean;
+  show_more_background?: boolean;
 };
 
 export default function Admin() {
@@ -35,6 +37,9 @@ export default function Admin() {
   const [editPrimaryColor, setEditPrimaryColor] = useState<string>("#FFD400");
   const [editTextColor, setEditTextColor] = useState<string>("#000000");
   const [editBackgroundColor, setEditBackgroundColor] = useState<string>("rgba(0, 0, 0, 0.6)");
+  const [editShowNameBg, setEditShowNameBg] = useState<boolean>(true);
+  const [editShowMoreBg, setEditShowMoreBg] = useState<boolean>(true);
+
 
   // Check localStorage voor opgeslagen admin key bij mount
   useEffect(() => {
@@ -253,6 +258,8 @@ export default function Admin() {
           primaryColor: editPrimaryColor,
           textColor: editTextColor,
           backgroundColor: editBackgroundColor,
+          showNameBackground: editShowNameBg,
+          showMoreBackground: editShowMoreBg,
         }),
       });
 
@@ -471,6 +478,8 @@ export default function Admin() {
                         setEditPrimaryColor(shop.primary_color || "#FFD400");
                         setEditTextColor(shop.text_color || "#000000");
                         setEditBackgroundColor(shop.background_color || "rgba(0, 0, 0, 0.6)");
+                        setEditShowNameBg(shop.show_name_background ?? true);
+                        setEditShowMoreBg(shop.show_more_background ?? true);
                       }}
                       className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-all"
                     >
@@ -542,6 +551,28 @@ export default function Admin() {
                   <p className="text-xs text-slate-400 mt-1">Standaard: rgba(0, 0, 0, 0.6) - Gebruik rgba() voor transparantie</p>
                 </div>
 
+                {/* Background Toggles */}
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editShowNameBg}
+                      onChange={(e) => setEditShowNameBg(e.target.checked)}
+                      className="w-5 h-5 rounded cursor-pointer"
+                    />
+                    <span className="text-slate-300 text-sm">Toon achtergrond bij namen</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editShowMoreBg}
+                      onChange={(e) => setEditShowMoreBg(e.target.checked)}
+                      className="w-5 h-5 rounded cursor-pointer"
+                    />
+                    <span className="text-slate-300 text-sm">Toon achtergrond bij &quot;En nog X meer&quot;</span>
+                  </label>
+                </div>
+
                 {/* Preview */}
                 <div className="p-4 bg-black/30 rounded-xl">
                   <p className="text-slate-300 text-sm mb-2">Voorbeeld:</p>
@@ -549,7 +580,7 @@ export default function Admin() {
                     <div>
                       <span
                         style={{
-                          backgroundColor: editBackgroundColor,
+                          backgroundColor: editShowNameBg ? editBackgroundColor : "transparent",
                           color: editPrimaryColor,
                           padding: "8px 16px",
                           borderRadius: "8px",
@@ -563,7 +594,7 @@ export default function Admin() {
                     <div>
                       <span
                         style={{
-                          backgroundColor: editPrimaryColor,
+                          backgroundColor: editShowMoreBg ? editPrimaryColor : "transparent",
                           color: editTextColor,
                           padding: "10px 20px",
                           borderRadius: "8px",

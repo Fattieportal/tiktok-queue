@@ -8,6 +8,8 @@ type State = {
     primary: string;
     text: string;
     background: string;
+    showNameBg: boolean;
+    showMoreBg: boolean;
   };
 };
 
@@ -19,6 +21,8 @@ export default function Overlay() {
   const primaryColor = state.colors?.primary || "#FFD400";
   const textColor = state.colors?.text || "#000000";
   const backgroundColor = state.colors?.background || "rgba(0, 0, 0, 0.6)";
+  const showNameBg = state.colors?.showNameBg ?? true;
+  const showMoreBg = state.colors?.showMoreBg ?? true;
 
   useEffect(() => {
     // Maak body transparant voor overlay
@@ -112,7 +116,7 @@ export default function Overlay() {
                     fontWeight: "bold", 
                     fontSize: 44,
                     color: primaryColor,
-                    backgroundColor: backgroundColor,
+                    backgroundColor: showNameBg ? backgroundColor : "transparent",
                     padding: "8px 16px",
                     borderRadius: "8px",
                     WebkitTextStroke: "2px black",
@@ -129,7 +133,7 @@ export default function Overlay() {
                     fontWeight: "bold", 
                     fontSize: 40,
                     color: textColor,
-                    backgroundColor: primaryColor,
+                    backgroundColor: showMoreBg ? primaryColor : "transparent",
                     padding: "10px 20px",
                     borderRadius: "8px",
                   }}

@@ -16,19 +16,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id, primaryColor, textColor, backgroundColor } = req.body;
+    const { id, primaryColor, textColor, backgroundColor, showNameBackground, showMoreBackground } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "Shop ID is required" });
     }
 
-    const updateData: Record<string, string> = {};
-    if (primaryColor) updateData.primary_color = primaryColor;
-    if (textColor) updateData.text_color = textColor;
-    if (backgroundColor) updateData.background_color = backgroundColor;
+    const updateData: Record<string, string | boolean> = {};
+    if (primaryColor !== undefined) updateData.primary_color = primaryColor;
+    if (textColor !== undefined) updateData.text_color = textColor;
+    if (backgroundColor !== undefined) updateData.background_color = backgroundColor;
+    if (showNameBackground !== undefined) updateData.show_name_background = showNameBackground;
+    if (showMoreBackground !== undefined) updateData.show_more_background = showMoreBackground;
 
     if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ error: "No colors provided to update" });
+      return res.status(400).json({ error: "No data provided to update" });
     }
 
     const { data: shop, error } = await supabase

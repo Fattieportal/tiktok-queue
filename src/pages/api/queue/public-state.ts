@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Get shop colors
   const shopData = await supabaseAdmin
     .from("shops")
-    .select("primary_color,text_color,background_color")
+    .select("primary_color,text_color,background_color,show_name_background,show_more_background")
     .eq("id", shopId)
     .single();
 
@@ -47,6 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       primary: shopData.data.primary_color || "#FFD400",
       text: shopData.data.text_color || "#000000",
       background: shopData.data.background_color || "rgba(0, 0, 0, 0.6)",
+      showNameBg: shopData.data.show_name_background ?? true,
+      showMoreBg: shopData.data.show_more_background ?? true,
     },
   });
 }
