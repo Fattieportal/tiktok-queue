@@ -12,7 +12,7 @@ function isAuthorized(req: NextApiRequest): boolean {
   return Boolean(expected) && key === expected;
 }
 
-type AddBody = { firstName?: string };
+type AddBody = { firstName?: string; shopId?: string };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
@@ -20,8 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const body: AddBody = typeof req.body === "object" && req.body !== null ? (req.body as AddBody) : {};
   const firstName = (body.firstName ?? "").trim();
+  const shopId = body.shopId;
 
   if (!firstName) return res.status(400).json({ ok: false, error: "Missing firstName" });
+  if (!shopId) return res.status(400).json({ ok: false, error: "Missing shopId" });
 
   const ins = await supabaseAdmin
     .from("queue_entries")
@@ -30,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: "waiting",
       order_number: "MANUAL",
       shopify_order_id: null,
+      shop_id: shopId,
     })
     .select("id")
     .single();
@@ -39,6 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const log = await supabaseAdmin.from("queue_actions").insert({
     action_type: "add",
     payload: { insertedId: ins.data.id },
+    shop_id: shopId,
   });
 
   if (log.error) return res.status(500).json({ ok: false, error: log.error.message });

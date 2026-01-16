@@ -40,10 +40,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  // Latest not-undone action
+  const shopId = req.query.shopId as string | undefined;
+  if (!shopId) return res.status(400).json({ ok: false, error: "Missing shopId" });
+
+  // Latest not-undone action for this shop
   const a = await supabaseAdmin
     .from("queue_actions")
     .select("id,action_type,payload,undone_at")
+    .eq("shop_id", shopId)
     .is("undone_at", null)
     .order("created_at", { ascending: false })
     .limit(1)

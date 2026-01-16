@@ -59,8 +59,34 @@ function safeToString(v: unknown): string | null {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
-  if (!secret) return res.status(500).send("SHOPIFY_WEBHOOK_SECRET missing");
+  // Get shop domain from Shopify header
+  const shopDomain = (req.headers["x-shopify-shop-domain"] as string | undefined) ?? null;
+  
+  if (!shopDomain) {
+    return res.status(400).json({ ok: false, error: "Missing x-shopify-shop-domain header" });
+  }
+
+  // Find shop in database
+  const { data: shop, error: shopError } = await supabase
+    .from("shops")
+    .select("id, name")
+    .eq("shopify_shop_domain", shopDomain)
+    .eq("is_active", true)
+    .single();
+
+  if (shopError || !shop) {
+    return res.status(404).json({ ok: false, error: "Shop not found or inactive" });
+  }
+
+  // Get the secret for this specific shop from env variables
+  // Format: SHOPIFY_SECRET_<SHOP_NAME_UPPERCASE>
+  const secretKey = `SHOPIFY_SECRET_${shop.name.toUpperCase()}`;
+  const secret = process.env[secretKey];
+  
+  if (!secret) {
+    console.error(`Missing env variable: ${secretKey}`);
+    return res.status(500).send(`${secretKey} missing in environment variables`);
+  }
 
   const rawBody = await readRawBody(req);
   const hmacHeader = (req.headers["x-shopify-hmac-sha256"] as string | undefined) ?? null;
@@ -106,6 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     order_number: orderNumber,
     first_name: firstName,
     status: "waiting",
+    shop_id: shop.id,
   });
 
   // Treat unique/duplicate as ok (Shopify can retry)
@@ -121,5 +148,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     firstName,
     orderNumber,
     shippingTitles,
+    shopName: shop.name,
   });
 }

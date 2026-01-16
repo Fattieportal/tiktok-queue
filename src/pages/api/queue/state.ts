@@ -14,9 +14,16 @@ function isAuthorized(req: NextApiRequest): boolean {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
+  const shopId = req.query.shopId as string | undefined;
+  
+  if (!shopId) {
+    return res.status(400).json({ ok: false, error: "shopId is required" });
+  }
+
   const active = await supabaseAdmin
     .from("queue_entries")
     .select("id,first_name")
+    .eq("shop_id", shopId)
     .eq("status", "active")
     .order("created_at", { ascending: true })
     .order("id", { ascending: true })
@@ -28,6 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const waiting = await supabaseAdmin
     .from("queue_entries")
     .select("id,first_name")
+    .eq("shop_id", shopId)
     .eq("status", "waiting")
     .order("created_at", { ascending: true })
     .order("id", { ascending: true });

@@ -2,9 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 
 type Row = { id: number; first_name: string };
 type State = { active: Row | null; waiting: Row[]; totalWaiting: number };
+type Shop = { id: string; name: string; display_name: string; shopify_shop_domain: string | null; is_active: boolean };
 
 export default function Admin() {
   const [state, setState] = useState<State>({ active: null, waiting: [], totalWaiting: 0 });
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+  const [showShopManager, setShowShopManager] = useState<boolean>(false);
   const [manualName, setManualName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -13,20 +17,23 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>("");
 
+  // New shop form
+  const [newShopName, setNewShopName] = useState<string>("");
+  const [newShopDisplayName, setNewShopDisplayName] = useState<string>("");
+  const [newShopDomain, setNewShopDomain] = useState<string>("");
+
   // Check localStorage voor opgeslagen admin key bij mount
   useEffect(() => {
     const storedKey = localStorage.getItem("adminKey");
     if (storedKey) {
-      // Valideer de opgeslagen key automatisch
       const validateStoredKey = async () => {
         setIsLoading(true);
         try {
-          const r = await fetch(`/api/queue/state?key=${encodeURIComponent(storedKey)}`);
+          const r = await fetch(`/api/shops/list?key=${encodeURIComponent(storedKey)}`);
           if (r.ok) {
             setAdminKey(storedKey);
             setIsAuthenticated(true);
           } else {
-            // Key is niet meer geldig, verwijder uit localStorage
             localStorage.removeItem("adminKey");
           }
         } catch {
@@ -39,9 +46,36 @@ export default function Admin() {
     }
   }, []);
 
+  // Load shops wanneer authenticated
+  const loadShops = useCallback(async () => {
+    if (!adminKey) return;
+    try {
+      const r = await fetch(`/api/shops/list?key=${encodeURIComponent(adminKey)}`);
+      if (r.ok) {
+        const j = await r.json();
+        const shopList = j.shops || [];
+        setShops(shopList);
+        
+        // Select first shop if none selected
+        if (!selectedShop && shopList.length > 0) {
+          setSelectedShop(shopList[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load shops:", err);
+    }
+  }, [adminKey, selectedShop]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void loadShops();
+    }
+  }, [isAuthenticated, loadShops]);
+
   const load = useCallback(async () => {
-    if (!isAuthenticated || !adminKey) return;
-    const r = await fetch(`/api/queue/state?key=${encodeURIComponent(adminKey)}`);
+    if (!isAuthenticated || !adminKey || !selectedShop) return;
+    const r = await fetch(`/api/queue/state?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`);
+    if (!r.ok) return;
     const j = await r.json();
     setState({
       active: j.active ?? null,
@@ -49,21 +83,21 @@ export default function Admin() {
       totalWaiting: j.totalWaiting ?? 0,
     });
     setLastUpdate(new Date());
-  }, [isAuthenticated, adminKey]);
+  }, [isAuthenticated, adminKey, selectedShop]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !selectedShop) return;
     const t = window.setTimeout(() => void load(), 0);
     const id = window.setInterval(() => void load(), 1500);
     return () => {
       window.clearTimeout(t);
       window.clearInterval(id);
     };
-  }, [load, isAuthenticated]);
+  }, [load, isAuthenticated, selectedShop]);
 
   const post = useCallback(
     async (path: string, body?: unknown) => {
-      if (!adminKey) {
+      if (!adminKey || !selectedShop) {
         setAuthError("Sessie verlopen. Log opnieuw in.");
         setIsAuthenticated(false);
         return;
@@ -71,7 +105,7 @@ export default function Admin() {
 
       setIsLoading(true);
       try {
-        const r = await fetch(`${path}?key=${encodeURIComponent(adminKey)}`, {
+        const r = await fetch(`${path}?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`, {
           method: "POST",
           headers: body ? { "Content-Type": "application/json" } : undefined,
           body: body ? JSON.stringify(body) : undefined,
@@ -88,7 +122,7 @@ export default function Admin() {
         setIsLoading(false);
       }
     },
-    [adminKey, load]
+    [adminKey, selectedShop, load]
   );
 
   const handleLogin = async () => {
@@ -102,14 +136,12 @@ export default function Admin() {
     setAuthError("");
 
     try {
-      // Test de key door de state op te halen
-      const r = await fetch(`/api/queue/state?key=${encodeURIComponent(key)}`);
+      const r = await fetch(`/api/shops/list?key=${encodeURIComponent(key)}`);
       
       if (r.ok) {
         setAdminKey(key);
         setIsAuthenticated(true);
         setKeyInput("");
-        // Sla key op in localStorage voor volgende sessie
         localStorage.setItem("adminKey", key);
       } else if (r.status === 401) {
         setAuthError("Ongeldige admin key");
@@ -127,15 +159,79 @@ export default function Admin() {
     setIsAuthenticated(false);
     setAdminKey("");
     setAuthError("");
-    // Verwijder key uit localStorage bij uitloggen
+    setSelectedShop(null);
+    setShops([]);
     localStorage.removeItem("adminKey");
+  };
+
+  const handleCreateShop = async () => {
+    if (!newShopName.trim() || !newShopDisplayName.trim()) {
+      alert("Naam en display naam zijn verplicht");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/shops/create?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newShopName.trim(),
+          displayName: newShopDisplayName.trim(),
+          shopifyShopDomain: newShopDomain.trim() || null,
+        }),
+      });
+
+      if (r.ok) {
+        setNewShopName("");
+        setNewShopDisplayName("");
+        setNewShopDomain("");
+        await loadShops();
+        alert("Shop succesvol aangemaakt!");
+      } else {
+        const err = await r.json();
+        alert(`Fout: ${err.error || "Onbekende fout"}`);
+      }
+    } catch (err) {
+      alert("Fout bij het aanmaken van shop");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteShop = async (shopId: string) => {
+    if (!confirm("Weet je zeker dat je deze shop wilt verwijderen? Alle queue entries worden ook verwijderd.")) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/shops/delete?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: shopId }),
+      });
+
+      if (r.ok) {
+        if (selectedShop?.id === shopId) {
+          setSelectedShop(null);
+        }
+        await loadShops();
+        alert("Shop verwijderd");
+      } else {
+        alert("Fout bij verwijderen");
+      }
+    } catch {
+      alert("Fout bij verwijderen");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Login scherm
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -inset-[10px] opacity-50">
             <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
@@ -144,7 +240,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Login Card */}
         <div className="relative w-full max-w-md">
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl ring-1 ring-white/20">
             <div className="text-center mb-6 sm:mb-8">
@@ -224,10 +319,116 @@ export default function Admin() {
     );
   }
 
-  // Admin Dashboard (alleen zichtbaar na login)
+  // Shop Manager Modal
+  if (showShopManager) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -inset-[10px] opacity-50">
+            <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+            <div className="absolute top-0 -right-4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
+            <div className="absolute -bottom-8 left-20 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
+          </div>
+        </div>
+
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-3xl sm:text-4xl font-bold text-white">Shop Beheer</h1>
+            <button
+              onClick={() => setShowShopManager(false)}
+              className="px-4 py-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all"
+            >
+              Terug naar Queue
+            </button>
+          </div>
+
+          {/* Create New Shop */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-white/20 mb-6">
+            <h2 className="text-xl font-semibold text-white mb-4">Nieuwe Shop Toevoegen</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <input
+                type="text"
+                value={newShopName}
+                onChange={(e) => setNewShopName(e.target.value)}
+                placeholder="Shop naam (bijv: mysteryboxnl)"
+                className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <input
+                type="text"
+                value={newShopDisplayName}
+                onChange={(e) => setNewShopDisplayName(e.target.value)}
+                placeholder="Display naam (bijv: MysteryBox.nl)"
+                className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+            <input
+              type="text"
+              value={newShopDomain}
+              onChange={(e) => setNewShopDomain(e.target.value)}
+              placeholder="Shopify Shop Domain (bijv: mysterybox-nl.myshopify.com)"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
+            />
+            <button
+              onClick={handleCreateShop}
+              disabled={isLoading}
+              className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl hover:scale-105 transition-all disabled:opacity-50"
+            >
+              Shop Toevoegen
+            </button>
+            <div className="mt-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-yellow-200 text-sm">
+              <strong>Vergeet niet:</strong> Voeg <code className="bg-black/30 px-2 py-1 rounded">SHOPIFY_SECRET_{newShopName.toUpperCase() || "SHOPNAME"}</code> toe aan je .env bestand!
+            </div>
+          </div>
+
+          {/* Existing Shops */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl ring-1 ring-white/20">
+            <h2 className="text-xl font-semibold text-white mb-4">Bestaande Shops</h2>
+            <div className="space-y-3">
+              {shops.map((shop) => (
+                <div key={shop.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                  <div>
+                    <div className="text-white font-semibold">{shop.display_name}</div>
+                    <div className="text-slate-400 text-sm">ID: {shop.name}</div>
+                    {shop.shopify_shop_domain && (
+                      <div className="text-slate-500 text-xs">{shop.shopify_shop_domain}</div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteShop(shop.id)}
+                    className="px-4 py-2 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-all"
+                  >
+                    Verwijderen
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+          }
+          .animate-blob {
+            animation: blob 7s infinite;
+          }
+          .animation-delay-2000 {
+            animation-delay: 2s;
+          }
+          .animation-delay-4000 {
+            animation-delay: 4s;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Admin Dashboard - zie volgende deel
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Animated background effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -inset-[10px] opacity-50">
           <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
@@ -237,7 +438,6 @@ export default function Admin() {
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2 tracking-tight flex flex-wrap items-center gap-2">
             <span>Queue Admin</span>
@@ -255,199 +455,224 @@ export default function Admin() {
               Update: {lastUpdate.toLocaleTimeString("nl-NL")}
             </div>
             <button
+              onClick={() => setShowShopManager(true)}
+              className="px-3 sm:px-4 py-2 bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/50 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-500/30 transition-all"
+            >
+              Beheer Shops
+            </button>
+            <button
               onClick={handleLogout}
               className="px-3 sm:px-4 py-2 bg-red-500/20 text-red-300 ring-1 ring-red-500/50 rounded-full text-xs sm:text-sm font-medium hover:bg-red-500/30 transition-all"
             >
               Uitloggen
             </button>
           </div>
+
+          <div className="mt-4">
+            <label className="block text-sm text-slate-300 mb-2">Actieve Shop:</label>
+            <select
+              value={selectedShop?.id || ""}
+              onChange={(e) => {
+                const shop = shops.find(s => s.id === e.target.value);
+                setSelectedShop(shop || null);
+              }}
+              className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Selecteer een shop...</option>
+              {shops.map((shop) => (
+                <option key={shop.id} value={shop.id} className="bg-slate-800">
+                  {shop.display_name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left column - Controls */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Queue Controls */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">🎮</span>
-                <span>Wachtrij Beheer</span>
-              </h2>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <button
-                  onClick={() => void post("/api/queue/next")}
-                  disabled={!adminKey || isLoading}
-                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-green-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <span className="flex items-center justify-center gap-1 sm:gap-2">
-                    <span className="hidden sm:inline">▶️</span> Next
-                  </span>
-                </button>
+        {!selectedShop ? (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl ring-1 ring-white/20 text-center">
+            <div className="text-6xl mb-4">🏪</div>
+            <h2 className="text-2xl font-bold text-white mb-2">Selecteer een shop</h2>
+            <p className="text-slate-300">Kies een shop uit het dropdown menu hierboven om te beginnen.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+                <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl">🎮</span>
+                  <span>Wachtrij Beheer</span>
+                </h2>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <button
+                    onClick={() => void post("/api/queue/next")}
+                    disabled={!adminKey || isLoading}
+                    className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-green-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    <span className="flex items-center justify-center gap-1 sm:gap-2">
+                      <span className="hidden sm:inline">▶️</span> Next
+                    </span>
+                  </button>
 
-                <button
-                  onClick={() => void post("/api/queue/skip")}
-                  disabled={!adminKey || isLoading}
-                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-blue-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <span className="flex items-center justify-center gap-1 sm:gap-2">
-                    <span className="hidden sm:inline">⏭️</span> Skip
-                  </span>
-                </button>
+                  <button
+                    onClick={() => void post("/api/queue/skip")}
+                    disabled={!adminKey || isLoading}
+                    className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-blue-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    <span className="flex items-center justify-center gap-1 sm:gap-2">
+                      <span className="hidden sm:inline">⏭️</span> Skip
+                    </span>
+                  </button>
 
-                <button
-                  onClick={() => void post("/api/queue/undo")}
-                  disabled={!adminKey || isLoading}
-                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-amber-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <span className="flex items-center justify-center gap-1 sm:gap-2">
-                    <span className="hidden sm:inline">↩️</span> Undo
-                  </span>
-                </button>
+                  <button
+                    onClick={() => void post("/api/queue/undo")}
+                    disabled={!adminKey || isLoading}
+                    className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-amber-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    <span className="flex items-center justify-center gap-1 sm:gap-2">
+                      <span className="hidden sm:inline">↩️</span> Undo
+                    </span>
+                  </button>
 
-                <button
-                  onClick={() => {
-                    const ok = window.confirm("Weet je zeker dat je de hele wachtrij wilt resetten?");
-                    if (ok) void post("/api/queue/reset");
-                  }}
-                  disabled={!adminKey || isLoading}
-                  className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-red-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <span className="flex items-center justify-center gap-1 sm:gap-2">
-                    <span className="hidden sm:inline">🔄</span> Reset
-                  </span>
-                </button>
+                  <button
+                    onClick={() => {
+                      const ok = window.confirm("Weet je zeker dat je de hele wachtrij wilt resetten?");
+                      if (ok) void post("/api/queue/reset");
+                    }}
+                    disabled={!adminKey || isLoading}
+                    className="px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-red-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    <span className="flex items-center justify-center gap-1 sm:gap-2">
+                      <span className="hidden sm:inline">🔄</span> Reset
+                    </span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Manual Add */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">➕</span>
-                <span>Handmatig Toevoegen</span>
-              </h2>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <input
-                  value={manualName}
-                  onChange={(e) => setManualName(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+                <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl">➕</span>
+                  <span>Handmatig Toevoegen</span>
+                </h2>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <input
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        const name = manualName.trim();
+                        if (!name || !adminKey) return;
+                        setManualName("");
+                        void post("/api/queue/add", { firstName: name, shopId: selectedShop.id });
+                      }
+                    }}
+                    placeholder="Voornaam (bijv. Piet)"
+                    className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
+                  />
+                  <button
+                    onClick={() => {
                       const name = manualName.trim();
-                      if (!name || !adminKey) return;
+                      if (!name) return;
                       setManualName("");
-                      void post("/api/queue/add", { firstName: name });
-                    }
-                  }}
-                  placeholder="Voornaam (bijv. Piet)"
-                  className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
-                />
-                <button
-                  onClick={() => {
-                    const name = manualName.trim();
-                    if (!name) return;
-                    setManualName("");
-                    void post("/api/queue/add", { firstName: name });
-                  }}
-                  disabled={!adminKey || isLoading || !manualName.trim()}
-                  className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-purple-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap"
-                >
-                  Toevoegen
-                </button>
+                      void post("/api/queue/add", { firstName: name, shopId: selectedShop.id });
+                    }}
+                    disabled={!adminKey || isLoading || !manualName.trim()}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-purple-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap"
+                  >
+                    Toevoegen
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Waiting List */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">⏳</span>
-                <span>Wachtend</span>
-                <span className="ml-auto px-2 sm:px-3 py-1 bg-purple-500/30 text-purple-200 text-xs sm:text-sm font-bold rounded-full">
-                  {state.totalWaiting}
-                </span>
-              </h2>
-              <div className="max-h-64 sm:max-h-96 overflow-y-auto custom-scrollbar">
-                {state.waiting.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm sm:text-base">
-                    Geen wachtende personen
-                  </div>
-                ) : (
-                  <ol className="space-y-2">
-                    {state.waiting.map((person, index) => (
-                      <li
-                        key={person.id}
-                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
-                      >
-                        <span className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-purple-500/30 text-purple-200 rounded-full text-xs sm:text-sm font-bold">
-                          {index + 1}
-                        </span>
-                        <span className="text-white font-medium text-sm sm:text-base flex-1 min-w-0 truncate">{person.first_name}</span>
-                        <button
-                          onClick={() => {
-                            const ok = window.confirm(`Weet je zeker dat je ${person.first_name} uit de wachtrij wilt verwijderen?`);
-                            if (ok) void post("/api/queue/remove", { id: person.id });
-                          }}
-                          disabled={isLoading}
-                          className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-500/30 hover:border-red-500/50"
-                          title="Verwijder uit wachtrij"
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+                <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl">⏳</span>
+                  <span>Wachtend</span>
+                  <span className="ml-auto px-2 sm:px-3 py-1 bg-purple-500/30 text-purple-200 text-xs sm:text-sm font-bold rounded-full">
+                    {state.totalWaiting}
+                  </span>
+                </h2>
+                <div className="max-h-64 sm:max-h-96 overflow-y-auto custom-scrollbar">
+                  {state.waiting.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-sm sm:text-base">
+                      Geen wachtende personen
+                    </div>
+                  ) : (
+                    <ol className="space-y-2">
+                      {state.waiting.map((person, index) => (
+                        <li
+                          key={person.id}
+                          className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
                         >
-                          <span className="text-base sm:text-lg font-bold">×</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right column - Status */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Active Person */}
-            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-purple-500/50">
-              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">👤</span>
-                <span>Nu Actief</span>
-              </h2>
-              <div className="text-center py-6 sm:py-8">
-                {state.active ? (
-                  <>
-                    <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-2 animate-pulse break-words">
-                      {state.active.first_name}
-                    </div>
-                    <div className="inline-block px-3 sm:px-4 py-2 bg-green-500/30 text-green-200 rounded-full text-xs sm:text-sm font-medium">
-                      🟢 Actief
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-4xl sm:text-5xl lg:text-6xl mb-2">—</div>
-                    <div className="inline-block px-3 sm:px-4 py-2 bg-slate-500/30 text-slate-300 rounded-full text-xs sm:text-sm font-medium">
-                      Niemand actief
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">📊</span>
-                <span>Statistieken</span>
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                  <span className="text-slate-300 text-sm sm:text-base">Totaal wachtend:</span>
-                  <span className="text-xl sm:text-2xl font-bold text-white">{state.totalWaiting}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                  <span className="text-slate-300 text-sm sm:text-base">Actief:</span>
-                  <span className="text-xl sm:text-2xl font-bold text-white">{state.active ? "1" : "0"}</span>
+                          <span className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-purple-500/30 text-purple-200 rounded-full text-xs sm:text-sm font-bold">
+                            {index + 1}
+                          </span>
+                          <span className="text-white font-medium text-sm sm:text-base flex-1 min-w-0 truncate">{person.first_name}</span>
+                          <button
+                            onClick={() => {
+                              const ok = window.confirm(`Weet je zeker dat je ${person.first_name} uit de wachtrij wilt verwijderen?`);
+                              if (ok) void post("/api/queue/remove", { id: person.id });
+                            }}
+                            disabled={isLoading}
+                            className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-500/30 hover:border-red-500/50"
+                            title="Verwijder uit wachtrij"
+                          >
+                            <span className="text-base sm:text-lg font-bold">×</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Loading Overlay */}
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-purple-500/50">
+                <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl">👤</span>
+                  <span>Nu Actief</span>
+                </h2>
+                <div className="text-center py-6 sm:py-8">
+                  {state.active ? (
+                    <>
+                      <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-2 animate-pulse break-words">
+                        {state.active.first_name}
+                      </div>
+                      <div className="inline-block px-3 sm:px-4 py-2 bg-green-500/30 text-green-200 rounded-full text-xs sm:text-sm font-medium">
+                        🟢 Actief
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-4xl sm:text-5xl lg:text-6xl mb-2">—</div>
+                      <div className="inline-block px-3 sm:px-4 py-2 bg-slate-500/30 text-slate-300 rounded-full text-xs sm:text-sm font-medium">
+                        Niemand actief
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-2xl ring-1 ring-white/20">
+                <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl">📊</span>
+                  <span>Statistieken</span>
+                </h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <span className="text-slate-300 text-sm sm:text-base">Totaal wachtend:</span>
+                    <span className="text-xl sm:text-2xl font-bold text-white">{state.totalWaiting}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <span className="text-slate-300 text-sm sm:text-base">Actief:</span>
+                    <span className="text-xl sm:text-2xl font-bold text-white">{state.active ? "1" : "0"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isLoading && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl ring-1 ring-white/20">

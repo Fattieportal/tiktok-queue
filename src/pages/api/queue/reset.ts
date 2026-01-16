@@ -17,10 +17,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
+  const shopId = req.query.shopId as string | undefined;
+  if (!shopId) return res.status(400).json({ ok: false, error: "Missing shopId" });
+
   // Get ids that will be cleared (for undo)
   const rows = await supabaseAdmin
     .from("queue_entries")
     .select("id,status")
+    .eq("shop_id", shopId)
     .in("status", ["waiting", "active"]);
 
   if (rows.error) return res.status(500).json({ ok: false, error: rows.error.message });
@@ -43,6 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const log = await supabaseAdmin.from("queue_actions").insert({
     action_type: "reset",
     payload: { ids, previousStatuses },
+    shop_id: shopId,
   });
 
   if (log.error) return res.status(500).json({ ok: false, error: log.error.message });

@@ -15,10 +15,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
+  const shopId = req.query.shopId as string | undefined;
+  if (!shopId) return res.status(400).json({ ok: false, error: "Missing shopId" });
+
   // Find current active (oldest)
   const active = await supabaseAdmin
     .from("queue_entries")
     .select("id")
+    .eq("shop_id", shopId)
     .eq("status", "active")
     .order("created_at", { ascending: true })
     .order("id", { ascending: true })
@@ -39,6 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const next = await supabaseAdmin
     .from("queue_entries")
     .select("id")
+    .eq("shop_id", shopId)
     .eq("status", "waiting")
     .order("created_at", { ascending: true })
     .order("id", { ascending: true })
@@ -58,6 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const log = await supabaseAdmin.from("queue_actions").insert({
     action_type: "next",
     payload: { prevActiveId, newActiveId },
+    shop_id: shopId,
   });
 
   if (log.error) return res.status(500).json({ ok: false, error: log.error.message });

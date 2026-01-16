@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 
 type State = {
   waiting: { id: number; first_name: string }[];
@@ -6,23 +7,36 @@ type State = {
 };
 
 export default function Overlay() {
+  const router = useRouter();
   const [state, setState] = useState<State>({ waiting: [], totalWaiting: 0 });
 
   useEffect(() => {
     // Maak body transparant voor overlay
     document.body.style.background = "transparent";
     document.documentElement.style.background = "transparent";
+  }, []);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    
+    const shopId = router.query.shopId as string | undefined;
+    if (!shopId) return;
     
     const fetchState = async () => {
-      const r = await fetch("/api/queue/public-state");
-      const j = await r.json();
-      setState({ waiting: j.waiting ?? [], totalWaiting: j.totalWaiting ?? 0 });
+      try {
+        const r = await fetch(`/api/queue/public-state?shopId=${encodeURIComponent(shopId)}`);
+        if (!r.ok) return;
+        const j = await r.json();
+        setState({ waiting: j.waiting ?? [], totalWaiting: j.totalWaiting ?? 0 });
+      } catch {
+        // Ignore network errors
+      }
     };
 
     fetchState();
     const id = setInterval(fetchState, 1500);
     return () => clearInterval(id);
-  }, []);
+  }, [router.isReady, router.query.shopId]);
 
   const maxShow = 5;
   const names = state.waiting.map((x) => x.first_name);

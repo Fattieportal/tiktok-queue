@@ -17,6 +17,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
+  const shopId = req.query.shopId as string | undefined;
+  if (!shopId) return res.status(400).json({ ok: false, error: "Missing shopId" });
+
   const body: RemoveBody = typeof req.body === "object" && req.body !== null ? (req.body as RemoveBody) : {};
   const id = body.id;
 
@@ -29,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from("queue_entries")
     .select("id,status,first_name")
     .eq("id", id)
+    .eq("shop_id", shopId)
     .single();
 
   if (current.error) {
@@ -49,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const log = await supabaseAdmin.from("queue_actions").insert({
     action_type: "remove",
     payload: { removedId: id, previousStatus },
+    shop_id: shopId,
   });
 
   if (log.error) return res.status(500).json({ ok: false, error: log.error.message });
