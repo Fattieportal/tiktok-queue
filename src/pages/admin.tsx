@@ -380,24 +380,47 @@ export default function Admin() {
             <h2 className="text-xl font-semibold text-white mb-4">Bestaande Shops</h2>
             <div className="space-y-3">
               {shops.map((shop) => (
-                <div key={shop.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                  <div>
-                    <div className="text-white font-semibold">{shop.display_name}</div>
-                    <div className="text-slate-400 text-sm">Technische naam: {shop.name}</div>
-                    <div className="text-slate-500 text-xs mt-1">
-                      {shop.shopify_shop_domain ? (
-                        <span className="text-green-400">✓ Domain: {shop.shopify_shop_domain}</span>
-                      ) : (
-                        <span className="text-yellow-400">⚠️ Domain wordt auto-ingevuld bij eerste webhook</span>
-                      )}
+                <div key={shop.id} className="p-4 bg-white/5 rounded-xl">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="text-white font-semibold">{shop.display_name}</div>
+                      <div className="text-slate-400 text-sm">Technische naam: {shop.name}</div>
+                      <div className="text-slate-500 text-xs mt-1">
+                        {shop.shopify_shop_domain ? (
+                          <span className="text-green-400">✓ Domain: {shop.shopify_shop_domain}</span>
+                        ) : (
+                          <span className="text-yellow-400">⚠️ Domain wordt auto-ingevuld bij eerste webhook</span>
+                        )}
+                      </div>
                     </div>
+                    <button
+                      onClick={() => handleDeleteShop(shop.id)}
+                      className="px-4 py-2 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-all"
+                    >
+                      Verwijderen
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleDeleteShop(shop.id)}
-                    className="px-4 py-2 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-all"
-                  >
-                    Verwijderen
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const overlayUrl = `${window.location.origin}/overlay?shopId=${shop.id}`;
+                        navigator.clipboard.writeText(overlayUrl);
+                        alert(`Overlay URL gekopieerd!\n\n${overlayUrl}`);
+                      }}
+                      className="flex-1 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>📋</span>
+                      <span>Kopieer Overlay URL</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        window.open(`/overlay?shopId=${shop.id}`, '_blank');
+                      }}
+                      className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-all"
+                    >
+                      🔗 Open
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
