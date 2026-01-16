@@ -90,7 +90,7 @@ export default function Overlay() {
             Geen openstaande
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {shown.map((n, i) => (
               <div key={i}>
                 <span
@@ -109,7 +109,7 @@ export default function Overlay() {
               </div>
             ))}
             {remaining > 0 && (
-              <div style={{ marginTop: "4px" }}>
+              <div style={{ marginTop: "8px" }}>
                 <span
                   style={{ 
                     fontWeight: "bold", 
