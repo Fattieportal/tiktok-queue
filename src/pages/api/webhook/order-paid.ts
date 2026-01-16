@@ -64,6 +64,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Get shop domain from Shopify header
   const shopDomain = (req.headers["x-shopify-shop-domain"] as string | undefined) ?? null;
   
+  // DEBUG: Log what Shopify sends
+  console.log("[WEBHOOK DEBUG] Received shop domain:", shopDomain);
+  console.log("[WEBHOOK DEBUG] All headers:", JSON.stringify(req.headers, null, 2));
+  
   if (!shopDomain) {
     return res.status(400).json({ ok: false, error: "Missing x-shopify-shop-domain header" });
   }
@@ -77,7 +81,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .single();
 
   if (shopError || !shop) {
-    return res.status(404).json({ ok: false, error: "Shop not found or inactive" });
+    console.log("[WEBHOOK DEBUG] Shop lookup failed. Looking for domain:", shopDomain);
+    console.log("[WEBHOOK DEBUG] Error:", shopError);
+    return res.status(404).json({ 
+      ok: false, 
+      error: "Shop not found or inactive",
+      debug: {
+        searchedDomain: shopDomain,
+        error: shopError?.message
+      }
+    });
   }
 
   // Get the secret for this specific shop from env variables
