@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     .select("id, name")
     .eq("shopify_shop_domain", shopDomain)
     .eq("is_active", true)
-    .single();
+    .single<{ id: string; name: string }>();
 
   if (shopError || !shop) {
     return NextResponse.json({ ok: false, error: "Shop not found or inactive" }, { status: 404 });
@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
     ((order.shipping_address?.name ?? "").trim().split(" ")[0] || "").trim() ||
     `Order #${orderNumber ?? "?"}`;
 
+  // @ts-expect-error - Supabase typing issue with Proxy client
   const { error: insertErr } = await supabase.from("queue_entries").insert({
     shopify_order_id: shopifyOrderId,
     order_number: orderNumber,
