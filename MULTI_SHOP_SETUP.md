@@ -141,6 +141,24 @@ POST /api/shops/delete?key=ADMIN_KEY
 
 ## 🐛 Troubleshooting
 
+### "Selecteer eerst een shop uit het dropdown menu!" 
+- Je hebt nog geen shop geselecteerd in het admin panel
+- **Oplossing**: Kies een shop uit het dropdown menu bovenaan de pagina
+
+### Dropdown menu is leeg / geen shops zichtbaar
+- De database migratie is niet uitgevoerd, OF
+- Er zijn nog geen shops aangemaakt
+- **Oplossing**: 
+  1. Run `DATABASE_MIGRATION.sql` in Supabase SQL Editor
+  2. Refresh de admin pagina
+  3. Klik op "Beheer Shops" en maak je eerste shop aan
+
+### Posts werken niet / geen reactie bij knoppen
+- **Check 1**: Heb je een shop geselecteerd in het dropdown menu?
+- **Check 2**: Open de browser console (F12) en kijk naar errors
+- **Check 3**: Is de database migratie succesvol uitgevoerd?
+- **Check 4**: Refresh de pagina en probeer opnieuw
+
 ### "shopId is required" error
 - Zorg dat je een shop hebt geselecteerd in het admin panel
 - Check of de shopId parameter in de URL staat bij API calls

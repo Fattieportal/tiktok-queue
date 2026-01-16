@@ -49,20 +49,25 @@ export default function Admin() {
   // Load shops wanneer authenticated
   const loadShops = useCallback(async () => {
     if (!adminKey) return;
+    console.log("Loading shops...");
     try {
       const r = await fetch(`/api/shops/list?key=${encodeURIComponent(adminKey)}`);
       if (r.ok) {
         const j = await r.json();
         const shopList = j.shops || [];
+        console.log("Shops loaded:", shopList);
         setShops(shopList);
         
         // Select first shop if none selected
-        if (!selectedShop && shopList.length > 0) {
+        if (shopList.length > 0 && !selectedShop) {
+          console.log("Auto-selecting first shop:", shopList[0]);
           setSelectedShop(shopList[0]);
+        } else if (shopList.length === 0) {
+          console.warn("No shops found! Please create a shop first.");
         }
       }
-    } catch (err) {
-      console.error("Failed to load shops:", err);
+    } catch (error) {
+      console.error("Failed to load shops:", error);
     }
   }, [adminKey, selectedShop]);
 
@@ -488,6 +493,7 @@ export default function Admin() {
               value={selectedShop?.id || ""}
               onChange={(e) => {
                 const shop = shops.find(s => s.id === e.target.value);
+                console.log("Shop selected:", shop);
                 setSelectedShop(shop || null);
               }}
               className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -499,6 +505,21 @@ export default function Admin() {
                 </option>
               ))}
             </select>
+            {selectedShop && (
+              <div className="mt-2 text-xs text-green-300">
+                ✓ Geselecteerd: {selectedShop.display_name} (ID: {selectedShop.id})
+              </div>
+            )}
+            {!selectedShop && shops.length > 0 && (
+              <div className="mt-2 text-xs text-yellow-300">
+                ⚠️ Selecteer een shop om te beginnen
+              </div>
+            )}
+            {shops.length === 0 && (
+              <div className="mt-2 text-xs text-red-300">
+                ❌ Geen shops gevonden. Klik op &quot;Beheer Shops&quot; om een shop aan te maken.
+              </div>
+            )}
           </div>
         </div>
 
