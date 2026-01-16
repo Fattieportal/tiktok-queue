@@ -19,7 +19,7 @@ Dit maakt:
 
 ## 🔐 Stap 2: Environment Variables
 
-Voor elke shop moet je een SHOPIFY_SECRET toevoegen aan je `.env` bestand:
+Voor elke shop moet je een SHOPIFY_SECRET toevoegen in Vercel:
 
 ### Format:
 ```
@@ -41,7 +41,26 @@ SHOPIFY_SECRET_MYSTERYBOXNL=secret_for_mysteryboxnl
 SHOPIFY_SECRET_SHOP2=secret_for_shop2
 ```
 
-**Let op:** De shop naam moet exact overeenkomen met de `name` in de database (lowercase, underscores i.p.v. spaties).
+### Environment Variables Toevoegen in Vercel:
+
+1. Ga naar je Vercel project
+2. Klik op **Settings** → **Environment Variables**
+3. Voeg de nieuwe variable toe (bijv: `SHOPIFY_SECRET_MYSTERYBOXNL`)
+4. Vul de waarde in (je Shopify webhook secret)
+5. Klik **Save**
+6. **BELANGRIJK:** Je ziet deze popup:
+   ```
+   Added Environment Variable successfully. A new deployment 
+   is needed for changes to take effect.
+   ```
+7. **Klik op "Redeploy"** - Anders werkt de nieuwe shop niet!
+
+**Let op:** 
+- De shop naam moet exact overeenkomen met de `name` in de database (lowercase, underscores i.p.v. spaties)
+- Zonder redeploy zijn de nieuwe environment variables niet beschikbaar
+- Je kunt meerdere variables tegelijk toevoegen en dan 1x redeployen
+
+
 
 ## 🏪 Stap 3: Shops Aanmaken
 
@@ -50,10 +69,16 @@ SHOPIFY_SECRET_SHOP2=secret_for_shop2
 3. Vul de shop details in:
    - **Shop naam**: Technische naam (bijv: `mysteryboxnl`, `shop2`)
    - **Display naam**: Mooie naam (bijv: `MysteryBox.nl`, `Shop 2`)
-   - **Shopify Shop Domain**: Je myshopify.com domain (bijv: `mysterybox-nl.myshopify.com`)
+   - **Shopify Shop Domain**: Wordt automatisch ingevuld bij eerste webhook! Laat leeg.
 4. Klik "Shop Toevoegen"
-5. **BELANGRIJK:** Voeg nu meteen `SHOPIFY_SECRET_<SHOPNAME>` toe aan je `.env` bestand!
-6. Herstart je Next.js server
+5. **BELANGRIJK:** Voeg nu `SHOPIFY_SECRET_<SHOPNAME>` toe in Vercel:
+   - Ga naar Vercel → Settings → Environment Variables
+   - Voeg toe: `SHOPIFY_SECRET_MYSTERYBOXNL` (bijvoorbeeld)
+   - Klik **Save**
+   - Klik **Redeploy** in de popup die verschijnt!
+6. Wacht tot deployment klaar is (~30 seconden)
+7. De shop is nu klaar voor gebruik!
+
 
 ## 🔗 Stap 4: Shopify Webhooks Configureren
 
@@ -88,13 +113,40 @@ https://your-domain.com/overlay?shopId=550e8400-e29b-41d4-a716-446655440000
 
 Voeg deze URL toe als Browser Source in TikTok Live Studio / OBS.
 
-## 🎯 Gebruik Admin Panel
+## � Stap 6: Kleuren Aanpassen (Optioneel)
+
+Elke shop kan eigen kleuren hebben voor de overlay!
+
+### Kleuren Instellen:
+
+1. Log in op admin panel
+2. Klik op "Beheer Shops"
+3. Klik op **🎨 Kleuren** bij de gewenste shop
+4. Pas de kleuren aan:
+   - **Primaire Kleur**: Kleur van de namen (standaard: geel #FFD400)
+   - **Text Kleur**: Kleur van "En nog X meer" text (standaard: zwart #000000)
+   - **Achtergrond Kleur**: Achtergrond van naam vakjes (standaard: rgba(0, 0, 0, 0.6))
+5. Toggle achtergronden aan/uit:
+   - ✅ **Toon achtergrond bij namen**: Zwarte vakjes om namen
+   - ✅ **Toon achtergrond bij "En nog X meer"**: Gekleurde achtergrond
+6. Bekijk **Live Preview** om te zien hoe het eruitziet
+7. Klik **Opslaan**
+8. Refresh je overlay → nieuwe kleuren!
+
+### Voorbeelden:
+- **Rood theme**: `#FF0000` (primary), `#FFFFFF` (text), `rgba(0, 0, 0, 0.7)` (background)
+- **Blauw theme**: `#00BFFF` (primary), `#000000` (text), `rgba(255, 255, 255, 0.3)` (background)
+- **Alleen tekst**: Beide achtergrond toggles uit ⬜ voor minimalistisch design
+
+## �🎯 Gebruik Admin Panel
 
 1. **Login**: Gebruik je ADMIN_KEY
 2. **Shop Selecteren**: Kies een shop uit het dropdown menu
 3. **Queue Beheren**: Alle knoppen (Next, Skip, Undo, Reset, Remove) werken nu per shop
 4. **Handmatig Toevoegen**: Voeg namen toe aan de geselecteerde shop
 5. **Shops Beheren**: Klik "Beheer Shops" om shops aan te maken/verwijderen
+6. **Kleuren Aanpassen**: Klik "🎨 Kleuren" om overlay kleuren per shop in te stellen
+7. **Overlay URL**: Klik "📋 Kopieer Overlay URL" om de URL direct te kopiëren
 
 ## 🛠 API Endpoints
 

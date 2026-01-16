@@ -13,6 +13,7 @@ type Shop = {
   background_color?: string;
   show_name_background?: boolean;
   show_more_background?: boolean;
+  queue_closed?: boolean;
 };
 
 export default function Admin() {
@@ -272,6 +273,39 @@ export default function Admin() {
       }
     } catch {
       alert("Fout bij bijwerken kleuren");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleQueueStatus = async () => {
+    if (!selectedShop) return;
+
+    const newStatus = !selectedShop.queue_closed;
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/shops/toggle-queue?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedShop.id,
+          queueClosed: newStatus,
+        }),
+      });
+
+      if (r.ok) {
+        await loadShops();
+        // Update selected shop
+        const updatedShop = shops.find(s => s.id === selectedShop.id);
+        if (updatedShop) {
+          setSelectedShop({ ...updatedShop, queue_closed: newStatus });
+        }
+        alert(newStatus ? "Wachtrij is nu gesloten!" : "Wachtrij is nu open!");
+      } else {
+        alert("Fout bij wijzigen wachtrij status");
+      }
+    } catch {
+      alert("Fout bij wijzigen wachtrij status");
     } finally {
       setIsLoading(false);
     }
@@ -755,6 +789,25 @@ export default function Admin() {
                   <span className="text-xl sm:text-2xl">🎮</span>
                   <span>Wachtrij Beheer</span>
                 </h2>
+                
+                {/* Toggle Wachtrij Status */}
+                <div className="mb-4">
+                  <button
+                    onClick={toggleQueueStatus}
+                    disabled={!adminKey || isLoading}
+                    className={`w-full px-6 py-4 text-white text-base font-semibold rounded-xl shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+                      selectedShop?.queue_closed
+                        ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-green-500/50"
+                        : "bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-red-500/50"
+                    }`}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="text-xl">{selectedShop?.queue_closed ? "✅" : "🔒"}</span>
+                      <span>{selectedShop?.queue_closed ? "Open Wachtrij" : "Sluit Wachtrij"}</span>
+                    </span>
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <button
                     onClick={() => void post("/api/queue/next")}

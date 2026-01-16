@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 type State = {
   waiting: { id: number; first_name: string }[];
   totalWaiting: number;
+  queueClosed?: boolean;
   colors?: {
     primary: string;
     text: string;
@@ -15,7 +16,7 @@ type State = {
 
 export default function Overlay() {
   const router = useRouter();
-  const [state, setState] = useState<State>({ waiting: [], totalWaiting: 0 });
+  const [state, setState] = useState<State>({ waiting: [], totalWaiting: 0, queueClosed: false });
 
   // Default colors
   const primaryColor = state.colors?.primary || "#FFD400";
@@ -44,6 +45,7 @@ export default function Overlay() {
         setState({ 
           waiting: j.waiting ?? [], 
           totalWaiting: j.totalWaiting ?? 0,
+          queueClosed: j.queueClosed ?? false,
           colors: j.colors,
         });
       } catch {
@@ -95,7 +97,22 @@ export default function Overlay() {
           Wachtrij:
         </div>
 
-        {names.length === 0 ? (
+        {state.queueClosed ? (
+          <div 
+            style={{ 
+              fontWeight: "bold", 
+              fontSize: 48,
+              color: "#FF4444",
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              padding: "16px 32px",
+              borderRadius: "12px",
+              WebkitTextStroke: "2px black",
+              textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
+            }}
+          >
+            🔒 Wachtrij is gesloten
+          </div>
+        ) : names.length === 0 ? (
           <div 
             style={{ 
               fontWeight: "bold", 

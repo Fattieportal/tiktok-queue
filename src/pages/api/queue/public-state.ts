@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Get shop colors
   const shopData = await supabaseAdmin
     .from("shops")
-    .select("primary_color,text_color,background_color,show_name_background,show_more_background")
+    .select("primary_color,text_color,background_color,show_name_background,show_more_background,queue_closed")
     .eq("id", shopId)
     .single();
 
@@ -43,6 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     active: active.data ?? null,
     waiting: waiting.data ?? [],
     totalWaiting: (waiting.data ?? []).length,
+    queueClosed: shopData.data.queue_closed ?? false,
     colors: {
       primary: shopData.data.primary_color || "#FFD400",
       text: shopData.data.text_color || "#000000",
