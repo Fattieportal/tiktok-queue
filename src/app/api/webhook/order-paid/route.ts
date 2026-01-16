@@ -45,10 +45,14 @@ function safeToString(v: unknown): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  console.log("🔵 Webhook POST received");
+  
   // Get shop domain from Shopify header
   const shopDomain = req.headers.get("x-shopify-shop-domain") ?? null;
+  console.log("🔵 Shop domain:", shopDomain);
   
   if (!shopDomain) {
+    console.log("❌ No shop domain header");
     return NextResponse.json({ ok: false, error: "Missing x-shopify-shop-domain header" }, { status: 400 });
   }
 
