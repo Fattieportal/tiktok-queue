@@ -4,11 +4,21 @@ import { useRouter } from "next/router";
 type State = {
   waiting: { id: number; first_name: string }[];
   totalWaiting: number;
+  colors?: {
+    primary: string;
+    text: string;
+    background: string;
+  };
 };
 
 export default function Overlay() {
   const router = useRouter();
   const [state, setState] = useState<State>({ waiting: [], totalWaiting: 0 });
+
+  // Default colors
+  const primaryColor = state.colors?.primary || "#FFD400";
+  const textColor = state.colors?.text || "#000000";
+  const backgroundColor = state.colors?.background || "rgba(0, 0, 0, 0.6)";
 
   useEffect(() => {
     // Maak body transparant voor overlay
@@ -27,7 +37,11 @@ export default function Overlay() {
         const r = await fetch(`/api/queue/public-state?shopId=${encodeURIComponent(shopId)}`);
         if (!r.ok) return;
         const j = await r.json();
-        setState({ waiting: j.waiting ?? [], totalWaiting: j.totalWaiting ?? 0 });
+        setState({ 
+          waiting: j.waiting ?? [], 
+          totalWaiting: j.totalWaiting ?? 0,
+          colors: j.colors,
+        });
       } catch {
         // Ignore network errors
       }
@@ -68,7 +82,7 @@ export default function Overlay() {
         <div 
           style={{ 
             marginBottom: 18,
-            color: "#FFD400",
+            color: primaryColor,
             fontWeight: "bold",
             WebkitTextStroke: "3px black",
             textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
@@ -82,7 +96,7 @@ export default function Overlay() {
             style={{ 
               fontWeight: "bold", 
               fontSize: 44,
-              color: "#FFD400",
+              color: primaryColor,
               WebkitTextStroke: "3px black",
               textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
             }}
@@ -97,8 +111,8 @@ export default function Overlay() {
                   style={{ 
                     fontWeight: "bold", 
                     fontSize: 44,
-                    color: "#FFD400",
-                    backgroundColor: "rgba(0, 0, 0, 0.6)",
+                    color: primaryColor,
+                    backgroundColor: backgroundColor,
                     padding: "8px 16px",
                     borderRadius: "8px",
                     WebkitTextStroke: "2px black",
@@ -114,8 +128,8 @@ export default function Overlay() {
                   style={{ 
                     fontWeight: "bold", 
                     fontSize: 40,
-                    color: "black",
-                    backgroundColor: "#FFD400",
+                    color: textColor,
+                    backgroundColor: primaryColor,
                     padding: "10px 20px",
                     borderRadius: "8px",
                   }}

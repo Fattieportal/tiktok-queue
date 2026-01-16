@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { name, displayName } = req.body;
+    const { name, displayName, primaryColor, textColor, backgroundColor } = req.body;
 
     if (!name || !displayName) {
       return res.status(400).json({ error: "Name and displayName are required" });
@@ -33,6 +33,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         display_name: displayName,
         shopify_shop_domain: null, // Wordt auto-ingevuld bij eerste webhook
         is_active: true,
+        primary_color: primaryColor || "#FFD400",
+        text_color: textColor || "#000000",
+        background_color: backgroundColor || "rgba(0, 0, 0, 0.6)",
       })
       .select()
       .single();

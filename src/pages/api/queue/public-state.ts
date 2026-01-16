@@ -8,6 +8,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: "shopId is required" });
   }
 
+  // Get shop colors
+  const shopData = await supabaseAdmin
+    .from("shops")
+    .select("primary_color,text_color,background_color")
+    .eq("id", shopId)
+    .single();
+
+  if (shopData.error) return res.status(500).send(shopData.error.message);
+
   const active = await supabaseAdmin
     .from("queue_entries")
     .select("id,first_name")
@@ -34,5 +43,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     active: active.data ?? null,
     waiting: waiting.data ?? [],
     totalWaiting: (waiting.data ?? []).length,
+    colors: {
+      primary: shopData.data.primary_color || "#FFD400",
+      text: shopData.data.text_color || "#000000",
+      background: shopData.data.background_color || "rgba(0, 0, 0, 0.6)",
+    },
   });
 }

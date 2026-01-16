@@ -2,7 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 
 type Row = { id: number; first_name: string };
 type State = { active: Row | null; waiting: Row[]; totalWaiting: number };
-type Shop = { id: string; name: string; display_name: string; shopify_shop_domain: string | null; is_active: boolean };
+type Shop = { 
+  id: string; 
+  name: string; 
+  display_name: string; 
+  shopify_shop_domain: string | null; 
+  is_active: boolean;
+  primary_color?: string;
+  text_color?: string;
+  background_color?: string;
+};
 
 export default function Admin() {
   const [state, setState] = useState<State>({ active: null, waiting: [], totalWaiting: 0 });
@@ -20,6 +29,12 @@ export default function Admin() {
   // New shop form
   const [newShopName, setNewShopName] = useState<string>("");
   const [newShopDisplayName, setNewShopDisplayName] = useState<string>("");
+
+  // Color editor
+  const [editingShopColors, setEditingShopColors] = useState<Shop | null>(null);
+  const [editPrimaryColor, setEditPrimaryColor] = useState<string>("#FFD400");
+  const [editTextColor, setEditTextColor] = useState<string>("#000000");
+  const [editBackgroundColor, setEditBackgroundColor] = useState<string>("rgba(0, 0, 0, 0.6)");
 
   // Check localStorage voor opgeslagen admin key bij mount
   useEffect(() => {
@@ -225,6 +240,36 @@ export default function Admin() {
     }
   };
 
+  const handleUpdateColors = async () => {
+    if (!editingShopColors) return;
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/shops/update-colors?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingShopColors.id,
+          primaryColor: editPrimaryColor,
+          textColor: editTextColor,
+          backgroundColor: editBackgroundColor,
+        }),
+      });
+
+      if (r.ok) {
+        await loadShops();
+        setEditingShopColors(null);
+        alert("Kleuren succesvol bijgewerkt!");
+      } else {
+        alert("Fout bij bijwerken kleuren");
+      }
+    } catch {
+      alert("Fout bij bijwerken kleuren");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Login scherm
   if (!isAuthenticated) {
     return (
@@ -420,12 +465,136 @@ export default function Admin() {
                     >
                       🔗 Open
                     </button>
+                    <button
+                      onClick={() => {
+                        setEditingShopColors(shop);
+                        setEditPrimaryColor(shop.primary_color || "#FFD400");
+                        setEditTextColor(shop.text_color || "#000000");
+                        setEditBackgroundColor(shop.background_color || "rgba(0, 0, 0, 0.6)");
+                      }}
+                      className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-all"
+                    >
+                      🎨 Kleuren
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
+
+        {/* Color Editor Modal */}
+        {editingShopColors && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-gradient-to-br from-slate-900 to-purple-900 rounded-2xl p-6 max-w-2xl w-full shadow-2xl ring-1 ring-white/20">
+              <h2 className="text-2xl font-bold text-white mb-4">🎨 Pas Kleuren Aan - {editingShopColors.display_name}</h2>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm text-slate-300 mb-2">Primaire Kleur (namen text)</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="color"
+                      value={editPrimaryColor}
+                      onChange={(e) => setEditPrimaryColor(e.target.value)}
+                      className="w-20 h-12 rounded-lg cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={editPrimaryColor}
+                      onChange={(e) => setEditPrimaryColor(e.target.value)}
+                      placeholder="#FFD400"
+                      className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Standaard: #FFD400 (geel)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-slate-300 mb-2">Text Kleur (En nog X meer)</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="color"
+                      value={editTextColor}
+                      onChange={(e) => setEditTextColor(e.target.value)}
+                      className="w-20 h-12 rounded-lg cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={editTextColor}
+                      onChange={(e) => setEditTextColor(e.target.value)}
+                      placeholder="#000000"
+                      className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Standaard: #000000 (zwart)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-slate-300 mb-2">Achtergrond Kleur (naam vakjes)</label>
+                  <input
+                    type="text"
+                    value={editBackgroundColor}
+                    onChange={(e) => setEditBackgroundColor(e.target.value)}
+                    placeholder="rgba(0, 0, 0, 0.6)"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Standaard: rgba(0, 0, 0, 0.6) - Gebruik rgba() voor transparantie</p>
+                </div>
+
+                {/* Preview */}
+                <div className="p-4 bg-black/30 rounded-xl">
+                  <p className="text-slate-300 text-sm mb-2">Voorbeeld:</p>
+                  <div className="space-y-2">
+                    <div>
+                      <span
+                        style={{
+                          backgroundColor: editBackgroundColor,
+                          color: editPrimaryColor,
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          fontWeight: "bold",
+                          WebkitTextStroke: "2px black",
+                        }}
+                      >
+                        Voorbeeld Naam
+                      </span>
+                    </div>
+                    <div>
+                      <span
+                        style={{
+                          backgroundColor: editPrimaryColor,
+                          color: editTextColor,
+                          padding: "10px 20px",
+                          borderRadius: "8px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        En nog 3 meer...
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditingShopColors(null)}
+                  className="flex-1 px-6 py-3 bg-slate-500/20 text-slate-300 rounded-xl hover:bg-slate-500/30 transition-all font-semibold"
+                >
+                  Annuleren
+                </button>
+                <button
+                  onClick={handleUpdateColors}
+                  disabled={isLoading}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:scale-105 transition-all font-semibold disabled:opacity-50"
+                >
+                  Opslaan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <style jsx>{`
           @keyframes blob {
