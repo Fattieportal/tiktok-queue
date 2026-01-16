@@ -97,27 +97,41 @@ export default function Admin() {
 
   const post = useCallback(
     async (path: string, body?: unknown) => {
-      if (!adminKey || !selectedShop) {
-        setAuthError("Sessie verlopen. Log opnieuw in.");
+      if (!adminKey) {
+        alert("Geen admin key gevonden. Log opnieuw in.");
         setIsAuthenticated(false);
+        return;
+      }
+
+      if (!selectedShop) {
+        alert("Selecteer eerst een shop uit het dropdown menu!");
         return;
       }
 
       setIsLoading(true);
       try {
-        const r = await fetch(`${path}?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`, {
+        const url = `${path}?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`;
+        console.log("POST request naar:", url, "Body:", body);
+        
+        const r = await fetch(url, {
           method: "POST",
           headers: body ? { "Content-Type": "application/json" } : undefined,
           body: body ? JSON.stringify(body) : undefined,
         });
 
+        console.log("Response status:", r.status);
+
         if (!r.ok) {
           const t = await r.text();
+          console.error("Error response:", t);
           alert(`Error (${r.status}): ${t}`);
           return;
         }
 
         await load();
+      } catch (error) {
+        console.error("Network error:", error);
+        alert("Network error: " + String(error));
       } finally {
         setIsLoading(false);
       }
