@@ -40,8 +40,6 @@ export default function ShopifyWidget() {
 
   // Default colors (oranje theme)
   const primaryColor = state.colors?.primary || "#FF9500";
-  const textColor = state.colors?.text || "#FFFFFF";
-  const backgroundColor = state.colors?.background || "rgba(0, 0, 0, 0.8)";
 
   // Update timer every second
   useEffect(() => {
@@ -88,7 +86,7 @@ export default function ShopifyWidget() {
       style={{
         width: "100%",
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)",
+        background: "linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -100,10 +98,11 @@ export default function ShopifyWidget() {
         style={{
           width: "100%",
           maxWidth: "600px",
-          background: "#1f1f1f",
+          background: "#ffffff",
           borderRadius: "24px",
           padding: "40px",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.1)",
+          border: "1px solid #e9ecef",
         }}
       >
         {/* Header */}
@@ -128,7 +127,7 @@ export default function ShopifyWidget() {
             style={{
               fontSize: "28px",
               fontWeight: "bold",
-              color: textColor,
+              color: "#1a1a1a",
               margin: 0,
               letterSpacing: "0.5px",
             }}
@@ -162,7 +161,8 @@ export default function ShopifyWidget() {
         ) : !state.active ? (
           <div
             style={{
-              background: backgroundColor,
+              background: "#f8f9fa",
+              border: "2px solid #e9ecef",
               borderRadius: "16px",
               padding: "32px",
               textAlign: "center",
@@ -173,7 +173,7 @@ export default function ShopifyWidget() {
               style={{
                 fontSize: "22px",
                 fontWeight: "bold",
-                color: textColor,
+                color: "#495057",
                 opacity: 0.8,
               }}
             >
@@ -182,7 +182,7 @@ export default function ShopifyWidget() {
             <div
               style={{
                 fontSize: "16px",
-                color: textColor,
+                color: "#6c757d",
                 opacity: 0.6,
                 marginTop: "8px",
               }}
@@ -193,7 +193,7 @@ export default function ShopifyWidget() {
         ) : (
           <div
             style={{
-              background: `linear-gradient(135deg, ${backgroundColor} 0%, rgba(255, 149, 0, 0.1) 100%)`,
+              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}10 100%)`,
               border: `3px solid ${primaryColor}`,
               borderRadius: "20px",
               padding: "32px",
@@ -232,7 +232,8 @@ export default function ShopifyWidget() {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "rgba(0, 0, 0, 0.6)",
+                background: "#f8f9fa",
+                border: "2px solid #e9ecef",
                 padding: "12px 20px",
                 borderRadius: "12px",
               }}
@@ -271,9 +272,9 @@ export default function ShopifyWidget() {
                 <div
                   style={{
                     fontSize: "22px",
-                    color: textColor,
-                    opacity: 0.9,
-                    background: "rgba(255, 255, 255, 0.05)",
+                    color: "#495057",
+                    background: "#f8f9fa",
+                    border: "2px solid #e9ecef",
                     padding: "16px 20px",
                     borderRadius: "12px",
                     marginTop: "20px",
@@ -292,8 +293,8 @@ export default function ShopifyWidget() {
             marginTop: "24px",
             textAlign: "center",
             fontSize: "14px",
-            color: textColor,
-            opacity: 0.5,
+            color: "#6c757d",
+            opacity: 0.7,
           }}
         >
           Live updates • Automatisch ververst
