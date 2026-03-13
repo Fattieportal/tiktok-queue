@@ -12,6 +12,13 @@ type ShopifyShippingLine = {
   title?: string | null;
 };
 
+type ShopifyLineItem = {
+  title?: string | null;
+  variant_title?: string | null;
+  quantity?: number | null;
+  name?: string | null;
+};
+
 type ShopifyAddress = {
   first_name?: string | null;
   name?: string | null;
@@ -26,6 +33,7 @@ type ShopifyOrderPaidWebhook = {
   order_number?: number | string | null;
   name?: string | null;
   shipping_lines?: ShopifyShippingLine[] | null;
+  line_items?: ShopifyLineItem[] | null;
   customer?: ShopifyCustomer | null;
   shipping_address?: ShopifyAddress | null;
   billing_address?: ShopifyAddress | null;
@@ -56,6 +64,27 @@ function safeToString(v: unknown): string | null {
   if (typeof v === "string") return v;
   if (typeof v === "number") return String(v);
   return null;
+}
+
+function formatProductInfo(lineItems: ShopifyLineItem[] | null | undefined): string {
+  if (!lineItems || lineItems.length === 0) return "Product info niet beschikbaar";
+
+  const formatted = lineItems
+    .map((item) => {
+      const quantity = item.quantity ?? 1;
+      const title = item.title?.trim() || item.name?.trim() || "Onbekend product";
+      const variant = item.variant_title?.trim();
+
+      // Format: "1x Product" of "1x Product (Variant)"
+      if (variant && variant.toLowerCase() !== "default title") {
+        return `${quantity}x ${title} (${variant})`;
+      }
+      return `${quantity}x ${title}`;
+    })
+    .filter(Boolean)
+    .join(" + ");
+
+  return formatted || "Product info niet beschikbaar";
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -171,10 +200,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ((order.shipping_address?.name ?? "").trim().split(" ")[0] || "").trim() ||
     `Order #${orderNumber ?? "?"}`;
 
+  const productInfo = formatProductInfo(order.line_items);
+
   const { error: insertErr } = await supabaseAdmin.from("queue_entries").insert({
     shopify_order_id: shopifyOrderId,
     order_number: orderNumber,
     first_name: firstName,
+    product_info: productInfo,
     status: "waiting",
     shop_id: shop.id,
   });
@@ -191,6 +223,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     status: "eligible",
     firstName,
     orderNumber,
+    productInfo,
     shippingTitles,
     shopName: shop.name,
   });
