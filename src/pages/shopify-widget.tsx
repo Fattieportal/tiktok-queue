@@ -10,6 +10,8 @@ type ActiveEntry = {
 
 type State = {
   active: ActiveEntry | null;
+  waiting: { id: number; first_name: string }[];
+  totalWaiting: number;
   queueClosed?: boolean;
   colors?: {
     primary: string;
@@ -27,13 +29,25 @@ function formatOrderTime(createdAt: string): string {
 
 export default function ShopifyWidget() {
   const router = useRouter();
-  const [state, setState] = useState<State>({ active: null, queueClosed: false });
+  const [state, setState] = useState<State>({ 
+    active: null, 
+    waiting: [], 
+    totalWaiting: 0, 
+    queueClosed: false 
+  });
 
   // Default colors (oranje theme)
   const primaryColor = state.colors?.primary || "#FF9500";
+  const textColor = state.colors?.text || "#000000";
 
   // Calculate order time from state
   const orderTime = state.active ? formatOrderTime(state.active.created_at) : "";
+
+  // Wachtrij logica (max 5 tonen, net als TikTok Live)
+  const maxShow = 5;
+  const waitingNames = state.waiting.map((x) => x.first_name);
+  const shownWaiting = waitingNames.slice(0, maxShow);
+  const remainingWaiting = Math.max(0, waitingNames.length - shownWaiting.length);
 
   // Fetch queue state
   useEffect(() => {
@@ -49,6 +63,8 @@ export default function ShopifyWidget() {
         const j = await r.json();
         setState({
           active: j.active ?? null,
+          waiting: j.waiting ?? [],
+          totalWaiting: j.totalWaiting ?? 0,
           queueClosed: j.queueClosed ?? false,
           colors: j.colors,
         });
@@ -77,15 +93,24 @@ export default function ShopifyWidget() {
     >
       <div
         style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
           width: "100%",
           maxWidth: "450px",
-          background: "#ffffff",
-          borderRadius: "16px",
-          padding: "20px",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-          border: "1px solid #e9ecef",
         }}
       >
+        {/* Actieve bestelling card */}
+        <div
+          style={{
+            width: "100%",
+            background: "#ffffff",
+            borderRadius: "16px",
+            padding: "20px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+            border: "1px solid #e9ecef",
+          }}
+        >
         {/* Header */}
         <div
           style={{
@@ -262,18 +287,81 @@ export default function ShopifyWidget() {
           </div>
         )}
 
-        {/* Footer */}
-        <div
-          style={{
-            marginTop: "12px",
-            textAlign: "center",
-            fontSize: "11px",
-            color: "#6c757d",
-            opacity: 0.7,
-          }}
-        >
-          Live updates • Automatisch ververst
+          {/* Footer */}
+          <div
+            style={{
+              marginTop: "12px",
+              textAlign: "center",
+              fontSize: "11px",
+              color: "#6c757d",
+              opacity: 0.7,
+            }}
+          >
+            Live updates • Automatisch ververst
+          </div>
         </div>
+
+        {/* Wachtende in wachtrij - net als TikTok Live */}
+        {shownWaiting.length > 0 && (
+          <div
+            style={{
+              width: "100%",
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "20px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+              border: "1px solid #e9ecef",
+            }}
+          >
+            <h4
+              style={{
+                fontSize: "14px",
+                fontWeight: "600",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                color: "#6c757d",
+                margin: "0 0 16px 0",
+              }}
+            >
+              Wachtende in wachtrij
+            </h4>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {shownWaiting.map((name, i) => (
+                <div
+                  key={i}
+                  style={{
+                    fontSize: "16px",
+                    color: "#1a1a1a",
+                    fontWeight: "500",
+                    padding: "10px 14px",
+                    backgroundColor: "#f8f9fa",
+                    borderRadius: "6px",
+                    borderLeft: `4px solid ${primaryColor}`,
+                  }}
+                >
+                  {name}
+                </div>
+              ))}
+
+              {remainingWaiting > 0 && (
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    padding: "8px 14px",
+                    backgroundColor: primaryColor,
+                    color: textColor,
+                    borderRadius: "6px",
+                    textAlign: "center",
+                  }}
+                >
+                  En nog {remainingWaiting} meer...
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pulse Animation */}
