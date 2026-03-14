@@ -87,34 +87,40 @@ export default function ShopifyWidget() {
   }, []);
 
   // Send height to parent window (Shopify iframe)
-  // Using useLayoutEffect to run AFTER DOM mutations but BEFORE browser paint
   useEffect(() => {
-    // Double RAF ensures we measure AFTER React finishes DOM updates
+    // Triple RAF to ensure React has finished ALL DOM mutations
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const height = document.documentElement.scrollHeight;
-        window.parent.postMessage(
-          { type: 'tiktok-queue-resize', height },
-          '*'
-        );
-        console.log('[Widget] Height:', height, 'State:', {
-          active: !!state.active,
-          waiting: state.waiting.length,
-          closed: state.queueClosed
+        requestAnimationFrame(() => {
+          const height = document.documentElement.scrollHeight;
+          window.parent.postMessage(
+            { type: 'tiktok-queue-resize', height },
+            '*'
+          );
+          console.log('[Widget] Height:', height, 'State:', {
+            active: !!state.active,
+            waiting: state.waiting.length,
+            closed: state.queueClosed
+          });
         });
       });
     });
-  }, [state, shownWaiting.length]); // Re-run when state OR shown waiting changes
+  }, [state, shownWaiting.length]);
 
-  // Separate ResizeObserver (persistent, not recreated on every state change)
+  // ResizeObserver with delayed measurement to avoid stale DOM reads
   useEffect(() => {
     const sendHeight = () => {
-      const height = document.documentElement.scrollHeight;
-      window.parent.postMessage(
-        { type: 'tiktok-queue-resize', height },
-        '*'
-      );
-      console.log('[Widget] Height sent (ResizeObserver):', height);
+      // Add RAF delay here too - ResizeObserver can fire before React updates DOM
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const height = document.documentElement.scrollHeight;
+          window.parent.postMessage(
+            { type: 'tiktok-queue-resize', height },
+            '*'
+          );
+          console.log('[Widget] Height sent (ResizeObserver):', height);
+        });
+      });
     };
 
     const observer = new ResizeObserver(sendHeight);
@@ -123,7 +129,7 @@ export default function ShopifyWidget() {
     return () => {
       observer.disconnect();
     };
-  }, []); // Only setup once
+  }, []);
 
   return (
     <div
