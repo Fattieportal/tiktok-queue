@@ -89,6 +89,9 @@ export default function ShopifyWidget() {
   // Send height to parent window (Shopify iframe)
   useEffect(() => {
     const sendHeight = () => {
+      // Force reflow to ensure DOM has updated
+      void document.body.offsetHeight; // Trigger reflow
+      
       const height = document.documentElement.scrollHeight;
       window.parent.postMessage(
         { type: 'tiktok-queue-resize', height },
@@ -109,10 +112,11 @@ export default function ShopifyWidget() {
     
     // After next frame
     requestAnimationFrame(() => {
-      timeouts.push(setTimeout(sendHeight, 0));
+      timeouts.push(setTimeout(sendHeight, 10));
       timeouts.push(setTimeout(sendHeight, 50));
       timeouts.push(setTimeout(sendHeight, 100));
       timeouts.push(setTimeout(sendHeight, 200));
+      timeouts.push(setTimeout(sendHeight, 300)); // Extra safety
     });
 
     return () => {
