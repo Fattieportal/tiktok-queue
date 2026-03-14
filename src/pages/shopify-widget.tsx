@@ -10,7 +10,7 @@ type ActiveEntry = {
 
 type State = {
   active: ActiveEntry | null;
-  waiting: { id: number; first_name: string }[];
+  waiting: { id: number; first_name: string; product_info?: string | null }[];
   totalWaiting: number;
   queueClosed?: boolean;
   colors?: {
@@ -45,9 +45,8 @@ export default function ShopifyWidget() {
 
   // Wachtrij logica (max 5 tonen, net als TikTok Live)
   const maxShow = 5;
-  const waitingNames = state.waiting.map((x) => x.first_name);
-  const shownWaiting = waitingNames.slice(0, maxShow);
-  const remainingWaiting = Math.max(0, waitingNames.length - shownWaiting.length);
+  const shownWaiting = state.waiting.slice(0, maxShow);
+  const remainingWaiting = Math.max(0, state.waiting.length - shownWaiting.length);
 
   // Fetch queue state
   useEffect(() => {
@@ -327,20 +326,32 @@ export default function ShopifyWidget() {
             </h4>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {shownWaiting.map((name, i) => (
+              {shownWaiting.map((person) => (
                 <div
-                  key={i}
+                  key={person.id}
                   style={{
-                    fontSize: "16px",
-                    color: "#1a1a1a",
-                    fontWeight: "500",
                     padding: "10px 14px",
                     backgroundColor: "#f8f9fa",
                     borderRadius: "6px",
                     borderLeft: `4px solid ${primaryColor}`,
                   }}
                 >
-                  {name}
+                  <div style={{
+                    fontSize: "16px",
+                    color: "#1a1a1a",
+                    fontWeight: "500",
+                    marginBottom: person.product_info ? "4px" : "0",
+                  }}>
+                    {person.first_name}
+                  </div>
+                  {person.product_info && (
+                    <div style={{
+                      fontSize: "13px",
+                      color: "#6c757d",
+                    }}>
+                      {person.product_info}
+                    </div>
+                  )}
                 </div>
               ))}
 

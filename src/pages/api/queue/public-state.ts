@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const waiting = await supabaseAdmin
     .from("queue_entries")
-    .select("id,first_name")
+    .select("id,first_name,product_info")
     .eq("shop_id", shopId)
     .eq("status", "waiting")
     .order("created_at", { ascending: true })
