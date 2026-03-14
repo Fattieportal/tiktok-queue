@@ -192,7 +192,7 @@ export default function ShopifyWidget() {
         ) : (
           <div
             style={{
-              background: `linear-gradient(135deg, #2a2f3a 0%, #1a1f2a 100%)`,
+              background: "#ffffff",
               border: `2px solid ${primaryColor}`,
               borderRadius: "12px",
               padding: "16px",
@@ -228,7 +228,7 @@ export default function ShopifyWidget() {
                 style={{
                   fontSize: "18px",
                   fontWeight: "600",
-                  color: "#ffffff",
+                  color: "#1a1a1a",
                   marginBottom: "4px",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -243,7 +243,7 @@ export default function ShopifyWidget() {
                 <div
                   style={{
                     fontSize: "13px",
-                    color: primaryColor,
+                    color: "#6c757d",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -260,7 +260,7 @@ export default function ShopifyWidget() {
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
-                background: "rgba(255, 255, 255, 0.1)",
+                background: "#f8f9fa",
                 padding: "6px 10px",
                 borderRadius: "6px",
                 flexShrink: 0,
@@ -271,7 +271,7 @@ export default function ShopifyWidget() {
                 style={{
                   fontSize: "14px",
                   fontWeight: "600",
-                  color: "#ffffff",
+                  color: "#1a1a1a",
                   fontFamily: "monospace",
                 }}
               >
