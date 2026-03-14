@@ -89,6 +89,10 @@ export default function ShopifyWidget() {
   // Send height to parent window (Shopify iframe)
   useEffect(() => {
     const sendHeight = () => {
+      // DEBUG: Check if waiting section actually exists in DOM
+      const waitingSection = document.querySelector('[data-waiting-section]');
+      const actualWaitingInDOM = waitingSection !== null;
+      
       const height = document.documentElement.scrollHeight;
       window.parent.postMessage(
         { type: 'tiktok-queue-resize', height },
@@ -97,6 +101,7 @@ export default function ShopifyWidget() {
       console.log('[Widget] Height:', height, 'State:', {
         active: !!state.active,
         waiting: state.waiting.length,
+        waitingInDOM: actualWaitingInDOM, // ← NEW: check actual DOM
         closed: state.queueClosed
       });
     };
@@ -352,6 +357,7 @@ export default function ShopifyWidget() {
         {/* Wachtende in wachtrij - net als TikTok Live (alleen als wachtrij NIET gesloten is) */}
         {shownWaiting.length > 0 && !state.queueClosed && (
           <div
+            data-waiting-section="true"
             style={{
               background: "#ffffff",
               borderRadius: "16px",
