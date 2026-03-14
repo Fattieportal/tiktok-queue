@@ -18,41 +18,22 @@ type State = {
   };
 };
 
-function formatElapsedTime(createdAt: string): string {
-  const start = new Date(createdAt).getTime();
-  const now = Date.now();
-  const diff = now - start;
-
-  const totalMinutes = Math.floor(diff / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}`;
-  }
-  return `${minutes}:${Math.floor((diff % 60000) / 1000).toString().padStart(2, "0")}`;
+function formatOrderTime(createdAt: string): string {
+  const date = new Date(createdAt);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 export default function ShopifyWidget() {
   const router = useRouter();
   const [state, setState] = useState<State>({ active: null, queueClosed: false });
-  const [currentTime, setCurrentTime] = useState<string>("");
 
   // Default colors (oranje theme)
   const primaryColor = state.colors?.primary || "#FF9500";
 
-  // Update timer every second
-  useEffect(() => {
-    if (!state.active) return;
-
-    const updateTimer = () => {
-      setCurrentTime(formatElapsedTime(state.active!.created_at));
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [state.active]);
+  // Calculate order time from state
+  const orderTime = state.active ? formatOrderTime(state.active.created_at) : "";
 
   // Fetch queue state
   useEffect(() => {
@@ -275,7 +256,7 @@ export default function ShopifyWidget() {
                   fontFamily: "monospace",
                 }}
               >
-                {currentTime}
+                {orderTime}
               </span>
             </div>
           </div>
