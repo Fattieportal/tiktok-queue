@@ -97,11 +97,11 @@ export default function ShopifyWidget() {
       <div
         style={{
           width: "100%",
-          maxWidth: "600px",
+          maxWidth: "450px",
           background: "#ffffff",
-          borderRadius: "24px",
-          padding: "40px",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.1)",
+          borderRadius: "16px",
+          padding: "20px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
           border: "1px solid #e9ecef",
         }}
       >
@@ -110,30 +110,31 @@ export default function ShopifyWidget() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "12px",
-            marginBottom: "32px",
+            gap: "8px",
+            marginBottom: "16px",
           }}
         >
           <div
             style={{
-              width: "12px",
-              height: "12px",
+              width: "8px",
+              height: "8px",
               borderRadius: "50%",
               background: primaryColor,
               animation: "pulse 2s ease-in-out infinite",
             }}
           />
-          <h1
+          <h4
             style={{
-              fontSize: "28px",
-              fontWeight: "bold",
+              fontSize: "14px",
+              fontWeight: "600",
               color: "#1a1a1a",
               margin: 0,
+              textTransform: "uppercase",
               letterSpacing: "0.5px",
             }}
           >
-            🟠 LIVE WACHTRIJ
-          </h1>
+            LIVE WACHTRIJ
+          </h4>
         </div>
 
         {/* Content */}
@@ -141,17 +142,17 @@ export default function ShopifyWidget() {
           <div
             style={{
               background: "rgba(255, 68, 68, 0.1)",
-              border: "2px solid #FF4444",
-              borderRadius: "16px",
-              padding: "32px",
+              border: "1px solid #FF4444",
+              borderRadius: "12px",
+              padding: "20px",
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>🔒</div>
             <div
               style={{
-                fontSize: "24px",
-                fontWeight: "bold",
+                fontSize: "14px",
+                fontWeight: "600",
                 color: "#FF4444",
               }}
             >
@@ -162,29 +163,27 @@ export default function ShopifyWidget() {
           <div
             style={{
               background: "#f8f9fa",
-              border: "2px solid #e9ecef",
-              borderRadius: "16px",
-              padding: "32px",
+              border: "1px solid #e9ecef",
+              borderRadius: "12px",
+              padding: "20px",
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: "48px", marginBottom: "16px" }}>⏳</div>
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>⏳</div>
             <div
               style={{
-                fontSize: "22px",
-                fontWeight: "bold",
+                fontSize: "14px",
+                fontWeight: "600",
                 color: "#495057",
-                opacity: 0.8,
               }}
             >
               Geen actieve bestelling
             </div>
             <div
               style={{
-                fontSize: "16px",
+                fontSize: "12px",
                 color: "#6c757d",
-                opacity: 0.6,
-                marginTop: "8px",
+                marginTop: "4px",
               }}
             >
               Wacht op de volgende live unboxing...
@@ -193,75 +192,47 @@ export default function ShopifyWidget() {
         ) : (
           <div
             style={{
-              background: `linear-gradient(135deg, #ffffff 0%, ${primaryColor}10 100%)`,
-              border: `3px solid ${primaryColor}`,
-              borderRadius: "20px",
-              padding: "32px",
+              background: `linear-gradient(135deg, #2a2f3a 0%, #1a1f2a 100%)`,
+              border: `2px solid ${primaryColor}`,
+              borderRadius: "12px",
+              padding: "16px",
               position: "relative",
-              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
             }}
           >
             {/* Position Badge */}
             <div
               style={{
-                position: "absolute",
-                top: "16px",
-                left: "16px",
                 background: primaryColor,
                 color: "#000000",
-                fontSize: "48px",
+                fontSize: "20px",
                 fontWeight: "bold",
-                width: "80px",
-                height: "80px",
-                borderRadius: "16px",
+                width: "50px",
+                height: "50px",
+                borderRadius: "8px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 8px 24px rgba(255, 149, 0, 0.4)",
+                flexShrink: 0,
               }}
             >
               #1
             </div>
 
-            {/* Timer */}
-            <div
-              style={{
-                position: "absolute",
-                top: "20px",
-                right: "20px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "#f8f9fa",
-                border: "2px solid #e9ecef",
-                padding: "12px 20px",
-                borderRadius: "12px",
-              }}
-            >
-              <span style={{ fontSize: "24px" }}>⏱️</span>
-              <span
-                style={{
-                  fontSize: "28px",
-                  fontWeight: "bold",
-                  color: primaryColor,
-                  fontFamily: "monospace",
-                }}
-              >
-                {currentTime}
-              </span>
-            </div>
-
             {/* Content */}
-            <div style={{ marginTop: "80px" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               {/* Name */}
               <div
                 style={{
-                  fontSize: "48px",
-                  fontWeight: "bold",
-                  color: primaryColor,
-                  marginBottom: "16px",
-                  textShadow: "0 4px 12px rgba(255, 149, 0, 0.3)",
-                  wordBreak: "break-word",
+                  fontSize: "18px",
+                  fontWeight: "600",
+                  color: "#ffffff",
+                  marginBottom: "4px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {state.active.first_name}
@@ -271,18 +242,41 @@ export default function ShopifyWidget() {
               {state.active.product_info && (
                 <div
                   style={{
-                    fontSize: "22px",
-                    color: "#495057",
-                    background: "#f8f9fa",
-                    border: "2px solid #e9ecef",
-                    padding: "16px 20px",
-                    borderRadius: "12px",
-                    marginTop: "20px",
+                    fontSize: "13px",
+                    color: primaryColor,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  📦 {state.active.product_info}
+                  {state.active.product_info}
                 </div>
               )}
+            </div>
+
+            {/* Timer */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "rgba(255, 255, 255, 0.1)",
+                padding: "6px 10px",
+                borderRadius: "6px",
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: "14px" }}>⏱️</span>
+              <span
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#ffffff",
+                  fontFamily: "monospace",
+                }}
+              >
+                {currentTime}
+              </span>
             </div>
           </div>
         )}
@@ -290,9 +284,9 @@ export default function ShopifyWidget() {
         {/* Footer */}
         <div
           style={{
-            marginTop: "24px",
+            marginTop: "12px",
             textAlign: "center",
-            fontSize: "14px",
+            fontSize: "11px",
             color: "#6c757d",
             opacity: 0.7,
           }}
