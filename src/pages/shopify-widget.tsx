@@ -89,28 +89,36 @@ export default function ShopifyWidget() {
   // Send height to parent window (Shopify iframe)
   useEffect(() => {
     const sendHeight = () => {
-      const height = document.documentElement.scrollHeight;
-      window.parent.postMessage(
-        { type: 'tiktok-queue-resize', height },
-        '*'
-      );
+      // Use requestAnimationFrame + setTimeout to ensure DOM has fully updated
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const height = document.documentElement.scrollHeight;
+          window.parent.postMessage(
+            { type: 'tiktok-queue-resize', height },
+            '*'
+          );
+          console.log('[Widget] Height sent:', height); // Debug logging
+        }, 50); // Small delay to ensure layout is complete
+      });
     };
 
-    // Send height immediately and on every state change
+    // Send height after state changes (after DOM update)
     sendHeight();
 
     // Also send on window resize (e.g., font loading)
     window.addEventListener('resize', sendHeight);
     
-    // Use ResizeObserver for more accurate detection
-    const observer = new ResizeObserver(sendHeight);
+    // Use ResizeObserver for more accurate detection (catches both grow AND shrink)
+    const observer = new ResizeObserver(() => {
+      sendHeight();
+    });
     observer.observe(document.body);
 
     return () => {
       window.removeEventListener('resize', sendHeight);
       observer.disconnect();
     };
-  }, [state]); // Re-run when state changes
+  }, [state]); // Re-run when state changes (active, waiting, queueClosed, colors)
 
   return (
     <div

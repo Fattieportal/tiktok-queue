@@ -10,6 +10,35 @@ De widget:
 - ✅ Geen fixed height of scrollbars
 - ✅ Stuurt hoogte updates bij elke state change (polling, queue updates, etc.)
 - ✅ Gebruikt ResizeObserver voor nauwkeurige detectie
+- ✅ requestAnimationFrame + delay voor correcte DOM timing
+- ✅ Werkt zowel bij groei ALS krimp van content
+
+### Wanneer wordt de hoogte verstuurd?
+
+1. **Bij elke state change** (elke 5 seconden via polling)
+   - Actieve bestelling verandert
+   - Wachtrij items toegevoegd/verwijderd
+   - Queue gesloten/geopend
+   - Kleuren wijzigen
+
+2. **Na DOM update** (requestAnimationFrame + 50ms delay)
+   - Zorgt dat layout volledig berekend is
+   - Vangt zowel groei als krimp op
+
+3. **Bij window resize** (fonts laden, browser resize)
+
+4. **Bij DOM changes** (ResizeObserver)
+   - Detecteert alle visuele changes
+   - Werkt voor groei EN krimp
+
+### Debug Mode
+
+Open de browser console in de widget om height updates te zien:
+```
+[Widget] Height sent: 450
+[Widget] Height sent: 380  ← krimp gedetecteerd!
+[Widget] Height sent: 520  ← groei gedetecteerd!
+```
 
 ## Shopify Theme Integratie
 
