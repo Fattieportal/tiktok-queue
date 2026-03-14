@@ -88,47 +88,54 @@ export default function ShopifyWidget() {
 
   // Send height to parent window (Shopify iframe)
   useEffect(() => {
-    // Triple RAF to ensure React has finished ALL DOM mutations
-    requestAnimationFrame(() => {
+    const sendHeight = () => {
+      const height = document.documentElement.scrollHeight;
+      window.parent.postMessage(
+        { type: 'tiktok-queue-resize', height },
+        '*'
+      );
+      console.log('[Widget] Height:', height, 'State:', {
+        active: !!state.active,
+        waiting: state.waiting.length,
+        closed: state.queueClosed
+      });
+    };
+
+    // Use MutationObserver to wait for ACTUAL DOM changes (not just React state)
+    const observer = new MutationObserver(() => {
+      // Measure after mutations settle
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const height = document.documentElement.scrollHeight;
-          window.parent.postMessage(
-            { type: 'tiktok-queue-resize', height },
-            '*'
-          );
-          console.log('[Widget] Height:', height, 'State:', {
-            active: !!state.active,
-            waiting: state.waiting.length,
-            closed: state.queueClosed
-          });
-        });
+        sendHeight();
       });
     });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
+
+    // Also send immediately
+    sendHeight();
+
+    return () => observer.disconnect();
   }, [state, shownWaiting.length]);
 
-  // ResizeObserver with delayed measurement to avoid stale DOM reads
+  // Separate ResizeObserver als backup
   useEffect(() => {
-    const sendHeight = () => {
-      // Add RAF delay here too - ResizeObserver can fire before React updates DOM
+    const observer = new ResizeObserver(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const height = document.documentElement.scrollHeight;
-          window.parent.postMessage(
-            { type: 'tiktok-queue-resize', height },
-            '*'
-          );
-          console.log('[Widget] Height sent (ResizeObserver):', height);
-        });
+        const height = document.documentElement.scrollHeight;
+        window.parent.postMessage(
+          { type: 'tiktok-queue-resize', height },
+          '*'
+        );
+        console.log('[Widget] Height sent (ResizeObserver):', height);
       });
-    };
+    });
 
-    const observer = new ResizeObserver(sendHeight);
     observer.observe(document.body);
-
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
 
   return (
