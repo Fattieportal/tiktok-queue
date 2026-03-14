@@ -80,12 +80,10 @@ export default function ShopifyWidget() {
   return (
     <div
       style={{
-        width: "100%",
         background: "#ffffff",
         display: "flex",
-        alignItems: "flex-start",
         justifyContent: "center",
-        padding: "20px 20px 0 20px",
+        padding: "20px",
         fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
