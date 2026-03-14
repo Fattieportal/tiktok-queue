@@ -88,22 +88,25 @@ export default function ShopifyWidget() {
 
   // Send height to parent window (Shopify iframe)
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     const sendHeight = () => {
       // DEBUG: Check if waiting section actually exists in DOM
       const waitingSection = document.querySelector('[data-waiting-section]');
       const actualWaitingInDOM = waitingSection !== null;
       
       // CRITICAL: Force synchronous reflow before measuring height
-      // This ensures browser has recalculated layout after DOM changes
-      void document.body.offsetHeight; // Trigger reflow
-      void document.documentElement.getBoundingClientRect(); // Force layout recalc
+      void document.body.offsetHeight;
+      void document.documentElement.getBoundingClientRect();
       
       const height = document.documentElement.scrollHeight;
+      const bodyRect = document.body.getBoundingClientRect();
+      
       window.parent.postMessage(
         { type: 'tiktok-queue-resize', height },
         '*'
       );
-      console.log('[Widget] Height:', height, 'State:', {
+      console.log('[Widget] Height:', height, 'bodyRect:', Math.ceil(bodyRect.height), 'State:', {
         active: !!state.active,
         waiting: state.waiting.length,
         waitingInDOM: actualWaitingInDOM,
@@ -111,14 +114,19 @@ export default function ShopifyWidget() {
       });
     };
 
-    // Use MutationObserver to wait for ACTUAL DOM changes (not just React state)
+    // Use MutationObserver with debounce to wait for ALL mutations to settle
     const observer = new MutationObserver(() => {
-      // Double RAF to ensure browser has time to recalculate layout
-      requestAnimationFrame(() => {
+      // Clear previous timeout
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // Debounce: wait 100ms after last mutation
+      timeoutId = setTimeout(() => {
         requestAnimationFrame(() => {
-          sendHeight();
+          requestAnimationFrame(() => {
+            sendHeight();
+          });
         });
-      });
+      }, 100);
     });
 
     observer.observe(document.body, {
@@ -127,10 +135,17 @@ export default function ShopifyWidget() {
       attributes: true
     });
 
-    // Also send immediately
-    sendHeight();
+    // Also send immediately (without debounce)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        sendHeight();
+      });
+    });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [state, shownWaiting.length]);
 
   // Separate ResizeObserver als backup
