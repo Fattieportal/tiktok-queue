@@ -99,14 +99,15 @@ export default function ShopifyWidget() {
       void document.body.offsetHeight;
       void document.documentElement.getBoundingClientRect();
       
-      const height = document.documentElement.scrollHeight;
+      // USE bodyRect.height instead of scrollHeight - it's more accurate!
       const bodyRect = document.body.getBoundingClientRect();
+      const height = Math.ceil(bodyRect.height);
       
       window.parent.postMessage(
         { type: 'tiktok-queue-resize', height },
         '*'
       );
-      console.log('[Widget] Height:', height, 'bodyRect:', Math.ceil(bodyRect.height), 'State:', {
+      console.log('[Widget] Height:', height, 'State:', {
         active: !!state.active,
         waiting: state.waiting.length,
         waitingInDOM: actualWaitingInDOM,
@@ -152,7 +153,9 @@ export default function ShopifyWidget() {
   useEffect(() => {
     const observer = new ResizeObserver(() => {
       requestAnimationFrame(() => {
-        const height = document.documentElement.scrollHeight;
+        // Use bodyRect instead of scrollHeight
+        const bodyRect = document.body.getBoundingClientRect();
+        const height = Math.ceil(bodyRect.height);
         window.parent.postMessage(
           { type: 'tiktok-queue-resize', height },
           '*'
