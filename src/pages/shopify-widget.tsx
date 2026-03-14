@@ -88,40 +88,36 @@ export default function ShopifyWidget() {
 
   // Send height to parent window (Shopify iframe)
   useEffect(() => {
-    const sendHeight = () => {
-      // Force reflow to ensure DOM has updated
-      void document.body.offsetHeight; // Trigger reflow
-      
-      const height = document.documentElement.scrollHeight;
-      window.parent.postMessage(
-        { type: 'tiktok-queue-resize', height },
-        '*'
-      );
-      console.log('[Widget] Height sent:', height, 'State:', {
-        active: !!state.active,
-        waiting: state.waiting.length,
-        closed: state.queueClosed
-      });
+    const sendHeight = (delay: number = 0) => {
+      setTimeout(() => {
+        // Multiple reflow triggers to be extra sure
+        void document.body.offsetHeight;
+        void document.documentElement.offsetHeight;
+        void document.body.getBoundingClientRect();
+        
+        const height = document.documentElement.scrollHeight;
+        window.parent.postMessage(
+          { type: 'tiktok-queue-resize', height },
+          '*'
+        );
+        console.log(`[Widget@${delay}ms] Height:`, height, 'State:', {
+          active: !!state.active,
+          waiting: state.waiting.length,
+          closed: state.queueClosed
+        });
+      }, delay);
     };
 
-    // Send height multiple times with different delays to catch all DOM updates
-    const timeouts: NodeJS.Timeout[] = [];
-    
-    // Immediate (optimistic)
-    timeouts.push(setTimeout(sendHeight, 0));
-    
-    // After next frame
-    requestAnimationFrame(() => {
-      timeouts.push(setTimeout(sendHeight, 10));
-      timeouts.push(setTimeout(sendHeight, 50));
-      timeouts.push(setTimeout(sendHeight, 100));
-      timeouts.push(setTimeout(sendHeight, 200));
-      timeouts.push(setTimeout(sendHeight, 300)); // Extra safety
-    });
+    // Aggressive multi-delay strategy
+    sendHeight(0);    // Immediate
+    sendHeight(10);   // Very quick
+    sendHeight(50);   // Quick
+    sendHeight(100);  // Normal
+    sendHeight(200);  // Slow
+    sendHeight(400);  // Extra slow
+    sendHeight(600);  // Very slow (for slow browsers)
+    sendHeight(1000); // Safety net (1 second)
 
-    return () => {
-      timeouts.forEach(clearTimeout);
-    };
   }, [state]); // Re-run when state changes
 
   // Separate ResizeObserver (persistent, not recreated on every state change)
