@@ -77,42 +77,29 @@ export default function ShopifyWidget() {
     return () => clearInterval(id);
   }, [router.isReady, router.query.shopId]);
 
-  // Set body styling for iframe centering
+  // Set minimal body styling for embedding
   useEffect(() => {
     document.body.style.margin = "0";
     document.body.style.padding = "0";
-    document.body.style.height = "100vh";
-    document.body.style.display = "flex";
-    document.body.style.alignItems = "center";
-    document.body.style.justifyContent = "center";
-    document.body.style.background = "#ffffff";
-    
+    document.body.style.background = "transparent";
     document.documentElement.style.margin = "0";
     document.documentElement.style.padding = "0";
-    document.documentElement.style.height = "100%";
   }, []);
 
   return (
     <div
       style={{
-        width: "100%",
-        maxWidth: "450px",
-        padding: "24px 20px",
-        boxSizing: "border-box",
         fontFamily: "Arial, Helvetica, sans-serif",
+        padding: "16px",
+        maxWidth: "500px",
+        margin: "0 auto",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-        }}
-      >
+      {/* Main widget container */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {/* Actieve bestelling card */}
         <div
           style={{
-            width: "100%",
             background: "#ffffff",
             borderRadius: "16px",
             padding: "20px",
@@ -314,12 +301,12 @@ export default function ShopifyWidget() {
         {shownWaiting.length > 0 && !state.queueClosed && (
           <div
             style={{
-              width: "100%",
               background: "#ffffff",
               borderRadius: "16px",
               padding: "20px",
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
               border: "1px solid #e9ecef",
+              marginTop: "16px",
             }}
           >
             <h4
@@ -335,7 +322,13 @@ export default function ShopifyWidget() {
               Wachtende in wachtrij
             </h4>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: "12px",
+              maxHeight: "300px",
+              overflowY: "auto",
+            }}>
               {shownWaiting.map((person) => (
                 <div
                   key={person.id}
