@@ -282,19 +282,6 @@ export default function ShopifyWidget() {
             </div>
           </div>
         )}
-
-          {/* Footer */}
-          <div
-            style={{
-              marginTop: "12px",
-              textAlign: "center",
-              fontSize: "11px",
-              color: "#6c757d",
-              opacity: 0.7,
-            }}
-          >
-            Live updates • Automatisch ververst
-          </div>
         </div>
 
         {/* Wachtende in wachtrij - net als TikTok Live (alleen als wachtrij NIET gesloten is) */}
