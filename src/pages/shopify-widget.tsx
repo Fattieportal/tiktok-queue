@@ -85,7 +85,7 @@ export default function ShopifyWidget() {
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
-        padding: "20px",
+        padding: "20px 20px 0 20px",
         fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
