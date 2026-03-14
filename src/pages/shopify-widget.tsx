@@ -299,8 +299,8 @@ export default function ShopifyWidget() {
           </div>
         </div>
 
-        {/* Wachtende in wachtrij - net als TikTok Live */}
-        {shownWaiting.length > 0 && (
+        {/* Wachtende in wachtrij - net als TikTok Live (alleen als wachtrij NIET gesloten is) */}
+        {shownWaiting.length > 0 && !state.queueClosed && (
           <div
             style={{
               width: "100%",
