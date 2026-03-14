@@ -93,6 +93,11 @@ export default function ShopifyWidget() {
       const waitingSection = document.querySelector('[data-waiting-section]');
       const actualWaitingInDOM = waitingSection !== null;
       
+      // CRITICAL: Force synchronous reflow before measuring height
+      // This ensures browser has recalculated layout after DOM changes
+      void document.body.offsetHeight; // Trigger reflow
+      void document.documentElement.getBoundingClientRect(); // Force layout recalc
+      
       const height = document.documentElement.scrollHeight;
       window.parent.postMessage(
         { type: 'tiktok-queue-resize', height },
@@ -101,16 +106,18 @@ export default function ShopifyWidget() {
       console.log('[Widget] Height:', height, 'State:', {
         active: !!state.active,
         waiting: state.waiting.length,
-        waitingInDOM: actualWaitingInDOM, // ← NEW: check actual DOM
+        waitingInDOM: actualWaitingInDOM,
         closed: state.queueClosed
       });
     };
 
     // Use MutationObserver to wait for ACTUAL DOM changes (not just React state)
     const observer = new MutationObserver(() => {
-      // Measure after mutations settle
+      // Double RAF to ensure browser has time to recalculate layout
       requestAnimationFrame(() => {
-        sendHeight();
+        requestAnimationFrame(() => {
+          sendHeight();
+        });
       });
     });
 
