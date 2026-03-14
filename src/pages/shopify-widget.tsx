@@ -86,6 +86,32 @@ export default function ShopifyWidget() {
     document.documentElement.style.padding = "0";
   }, []);
 
+  // Send height to parent window (Shopify iframe)
+  useEffect(() => {
+    const sendHeight = () => {
+      const height = document.documentElement.scrollHeight;
+      window.parent.postMessage(
+        { type: 'tiktok-queue-resize', height },
+        '*'
+      );
+    };
+
+    // Send height immediately and on every state change
+    sendHeight();
+
+    // Also send on window resize (e.g., font loading)
+    window.addEventListener('resize', sendHeight);
+    
+    // Use ResizeObserver for more accurate detection
+    const observer = new ResizeObserver(sendHeight);
+    observer.observe(document.body);
+
+    return () => {
+      window.removeEventListener('resize', sendHeight);
+      observer.disconnect();
+    };
+  }, [state]); // Re-run when state changes
+
   return (
     <div
       style={{
@@ -326,8 +352,6 @@ export default function ShopifyWidget() {
               display: "flex", 
               flexDirection: "column", 
               gap: "12px",
-              maxHeight: "300px",
-              overflowY: "auto",
             }}>
               {shownWaiting.map((person) => (
                 <div
