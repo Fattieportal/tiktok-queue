@@ -87,38 +87,24 @@ export default function ShopifyWidget() {
   }, []);
 
   // Send height to parent window (Shopify iframe)
+  // Using useLayoutEffect to run AFTER DOM mutations but BEFORE browser paint
   useEffect(() => {
-    const sendHeight = (delay: number = 0) => {
-      setTimeout(() => {
-        // Multiple reflow triggers to be extra sure
-        void document.body.offsetHeight;
-        void document.documentElement.offsetHeight;
-        void document.body.getBoundingClientRect();
-        
+    // Double RAF ensures we measure AFTER React finishes DOM updates
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         const height = document.documentElement.scrollHeight;
         window.parent.postMessage(
           { type: 'tiktok-queue-resize', height },
           '*'
         );
-        console.log(`[Widget@${delay}ms] Height:`, height, 'State:', {
+        console.log('[Widget] Height:', height, 'State:', {
           active: !!state.active,
           waiting: state.waiting.length,
           closed: state.queueClosed
         });
-      }, delay);
-    };
-
-    // Aggressive multi-delay strategy
-    sendHeight(0);    // Immediate
-    sendHeight(10);   // Very quick
-    sendHeight(50);   // Quick
-    sendHeight(100);  // Normal
-    sendHeight(200);  // Slow
-    sendHeight(400);  // Extra slow
-    sendHeight(600);  // Very slow (for slow browsers)
-    sendHeight(1000); // Safety net (1 second)
-
-  }, [state]); // Re-run when state changes
+      });
+    });
+  }, [state, shownWaiting.length]); // Re-run when state OR shown waiting changes
 
   // Separate ResizeObserver (persistent, not recreated on every state change)
   useEffect(() => {
