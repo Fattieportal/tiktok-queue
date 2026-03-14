@@ -77,12 +77,28 @@ export default function ShopifyWidget() {
     return () => clearInterval(id);
   }, [router.isReady, router.query.shopId]);
 
+  // Set body styling for iframe centering
+  useEffect(() => {
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
+    document.body.style.height = "100vh";
+    document.body.style.display = "flex";
+    document.body.style.alignItems = "center";
+    document.body.style.justifyContent = "center";
+    document.body.style.background = "#ffffff";
+    
+    document.documentElement.style.margin = "0";
+    document.documentElement.style.padding = "0";
+    document.documentElement.style.height = "100%";
+  }, []);
+
   return (
     <div
       style={{
-        background: "#ffffff",
-        display: "flex",
-        justifyContent: "center",
+        width: "100%",
+        maxWidth: "450px",
+        padding: "24px 20px",
+        boxSizing: "border-box",
         fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
@@ -91,8 +107,6 @@ export default function ShopifyWidget() {
           display: "flex",
           flexDirection: "column",
           gap: "20px",
-          width: "100%",
-          maxWidth: "450px",
         }}
       >
         {/* Actieve bestelling card */}
