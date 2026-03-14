@@ -89,36 +89,55 @@ export default function ShopifyWidget() {
   // Send height to parent window (Shopify iframe)
   useEffect(() => {
     const sendHeight = () => {
-      // Use requestAnimationFrame + setTimeout to ensure DOM has fully updated
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          const height = document.documentElement.scrollHeight;
-          window.parent.postMessage(
-            { type: 'tiktok-queue-resize', height },
-            '*'
-          );
-          console.log('[Widget] Height sent:', height); // Debug logging
-        }, 50); // Small delay to ensure layout is complete
+      const height = document.documentElement.scrollHeight;
+      window.parent.postMessage(
+        { type: 'tiktok-queue-resize', height },
+        '*'
+      );
+      console.log('[Widget] Height sent:', height, 'State:', {
+        active: !!state.active,
+        waiting: state.waiting.length,
+        closed: state.queueClosed
       });
     };
 
-    // Send height after state changes (after DOM update)
-    sendHeight();
-
-    // Also send on window resize (e.g., font loading)
-    window.addEventListener('resize', sendHeight);
+    // Send height multiple times with different delays to catch all DOM updates
+    const timeouts: NodeJS.Timeout[] = [];
     
-    // Use ResizeObserver for more accurate detection (catches both grow AND shrink)
-    const observer = new ResizeObserver(() => {
-      sendHeight();
+    // Immediate (optimistic)
+    timeouts.push(setTimeout(sendHeight, 0));
+    
+    // After next frame
+    requestAnimationFrame(() => {
+      timeouts.push(setTimeout(sendHeight, 0));
+      timeouts.push(setTimeout(sendHeight, 50));
+      timeouts.push(setTimeout(sendHeight, 100));
+      timeouts.push(setTimeout(sendHeight, 200));
     });
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [state]); // Re-run when state changes
+
+  // Separate ResizeObserver (persistent, not recreated on every state change)
+  useEffect(() => {
+    const sendHeight = () => {
+      const height = document.documentElement.scrollHeight;
+      window.parent.postMessage(
+        { type: 'tiktok-queue-resize', height },
+        '*'
+      );
+      console.log('[Widget] Height sent (ResizeObserver):', height);
+    };
+
+    const observer = new ResizeObserver(sendHeight);
     observer.observe(document.body);
 
     return () => {
-      window.removeEventListener('resize', sendHeight);
       observer.disconnect();
     };
-  }, [state]); // Re-run when state changes (active, waiting, queueClosed, colors)
+  }, []); // Only setup once
 
   return (
     <div
