@@ -83,7 +83,7 @@ export default function ShopifyWidget() {
       style={{
         width: "100%",
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)",
+        background: "#ffffff",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
