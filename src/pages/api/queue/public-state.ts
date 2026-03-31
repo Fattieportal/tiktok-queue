@@ -8,10 +8,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: "shopId is required" });
   }
 
-  // Get shop colors
+  // Get shop colors and language
   const shopData = await supabaseAdmin
     .from("shops")
-    .select("primary_color,text_color,background_color,show_name_background,show_more_background,queue_closed")
+    .select("primary_color,text_color,background_color,show_name_background,show_more_background,queue_closed,language")
     .eq("id", shopId)
     .single();
 
@@ -44,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     waiting: waiting.data ?? [],
     totalWaiting: (waiting.data ?? []).length,
     queueClosed: shopData.data.queue_closed ?? false,
+    language: shopData.data.language || "nl",
     colors: {
       primary: shopData.data.primary_color || "#FFD400",
       text: shopData.data.text_color || "#000000",

@@ -14,6 +14,7 @@ type Shop = {
   show_name_background?: boolean;
   show_more_background?: boolean;
   queue_closed?: boolean;
+  language?: string;
 };
 
 export default function Admin() {
@@ -40,6 +41,7 @@ export default function Admin() {
   const [editBackgroundColor, setEditBackgroundColor] = useState<string>("rgba(0, 0, 0, 0.6)");
   const [editShowNameBg, setEditShowNameBg] = useState<boolean>(true);
   const [editShowMoreBg, setEditShowMoreBg] = useState<boolean>(true);
+  const [editLanguage, setEditLanguage] = useState<string>("nl");
 
 
   // Check localStorage voor opgeslagen admin key bij mount
@@ -261,18 +263,19 @@ export default function Admin() {
           backgroundColor: editBackgroundColor,
           showNameBackground: editShowNameBg,
           showMoreBackground: editShowMoreBg,
+          language: editLanguage,
         }),
       });
 
       if (r.ok) {
         await loadShops();
         setEditingShopColors(null);
-        alert("Kleuren succesvol bijgewerkt!");
+        alert("Instellingen succesvol bijgewerkt!");
       } else {
-        alert("Fout bij bijwerken kleuren");
+        alert("Fout bij bijwerken instellingen");
       }
     } catch {
-      alert("Fout bij bijwerken kleuren");
+      alert("Fout bij bijwerken instellingen");
     } finally {
       setIsLoading(false);
     }
@@ -514,10 +517,11 @@ export default function Admin() {
                         setEditBackgroundColor(shop.background_color || "rgba(0, 0, 0, 0.6)");
                         setEditShowNameBg(shop.show_name_background ?? true);
                         setEditShowMoreBg(shop.show_more_background ?? true);
+                        setEditLanguage(shop.language || "nl");
                       }}
                       className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-all"
                     >
-                      🎨 Kleuren
+                      🎨 Instellingen
                     </button>
                   </div>
                 </div>
@@ -530,9 +534,25 @@ export default function Admin() {
         {editingShopColors && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-gradient-to-br from-slate-900 to-purple-900 rounded-2xl p-6 max-w-2xl w-full shadow-2xl ring-1 ring-white/20">
-              <h2 className="text-2xl font-bold text-white mb-4">🎨 Pas Kleuren Aan - {editingShopColors.display_name}</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">🎨 Pas Instellingen Aan - {editingShopColors.display_name}</h2>
               
               <div className="space-y-4 mb-6">
+                {/* Language Selector */}
+                <div>
+                  <label className="block text-sm text-slate-300 mb-2">🌍 Interface Taal</label>
+                  <select
+                    value={editLanguage}
+                    onChange={(e) => setEditLanguage(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="nl" className="bg-slate-800">🇳🇱 Nederlands</option>
+                    <option value="de" className="bg-slate-800">🇩🇪 Deutsch</option>
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">Kies de taal voor overlays en widgets</p>
+                </div>
+
+                <div className="border-t border-white/10 my-4"></div>
+
                 <div>
                   <label className="block text-sm text-slate-300 mb-2">Primaire Kleur (namen text)</label>
                   <div className="flex gap-3">

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { getTranslations, type Language } from "@/lib/translations";
 
 type State = {
   waiting: { id: number; first_name: string }[];
   totalWaiting: number;
   queueClosed?: boolean;
+  language?: Language;
   colors?: {
     primary: string;
     text: string;
@@ -16,7 +18,10 @@ type State = {
 
 export default function Overlay() {
   const router = useRouter();
-  const [state, setState] = useState<State>({ waiting: [], totalWaiting: 0, queueClosed: false });
+  const [state, setState] = useState<State>({ waiting: [], totalWaiting: 0, queueClosed: false, language: 'nl' });
+
+  // Get translations based on shop language
+  const t = getTranslations(state.language);
 
   // Default colors
   const primaryColor = state.colors?.primary || "#FFD400";
@@ -46,6 +51,7 @@ export default function Overlay() {
           waiting: j.waiting ?? [], 
           totalWaiting: j.totalWaiting ?? 0,
           queueClosed: j.queueClosed ?? false,
+          language: j.language || 'nl',
           colors: j.colors,
         });
       } catch {
@@ -94,7 +100,7 @@ export default function Overlay() {
             textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
           }}
         >
-          Wachtrij:
+          {t.queue}
         </div>
 
         {state.queueClosed ? (
@@ -110,7 +116,7 @@ export default function Overlay() {
               textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
             }}
           >
-            🔒 Wachtrij is gesloten
+            {t.queueClosedOverlay}
           </div>
         ) : names.length === 0 ? (
           <div 
@@ -122,7 +128,7 @@ export default function Overlay() {
               textShadow: "4px 4px 0px rgba(0,0,0,0.8), -2px -2px 0px rgba(0,0,0,0.8), 2px -2px 0px rgba(0,0,0,0.8), -2px 2px 0px rgba(0,0,0,0.8)",
             }}
           >
-            Geen openstaande
+            {t.noOpenOrders}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -155,7 +161,7 @@ export default function Overlay() {
                     borderRadius: "8px",
                   }}
                 >
-                  En nog {remaining} meer...
+                  {t.andMore} {remaining} meer...
                 </span>
               </div>
             )}

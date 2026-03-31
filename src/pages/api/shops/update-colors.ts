@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id, primaryColor, textColor, backgroundColor, showNameBackground, showMoreBackground } = req.body;
+    const { id, primaryColor, textColor, backgroundColor, showNameBackground, showMoreBackground, language } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "Shop ID is required" });
@@ -28,6 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (backgroundColor !== undefined) updateData.background_color = backgroundColor;
     if (showNameBackground !== undefined) updateData.show_name_background = showNameBackground;
     if (showMoreBackground !== undefined) updateData.show_more_background = showMoreBackground;
+    if (language !== undefined && ['nl', 'de'].includes(language)) updateData.language = language;
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "No data provided to update" });

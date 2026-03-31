@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { getTranslations, type Language } from "@/lib/translations";
 
 type ActiveEntry = {
   id: number;
@@ -13,6 +14,7 @@ type State = {
   waiting: { id: number; first_name: string; product_info?: string | null }[];
   totalWaiting: number;
   queueClosed?: boolean;
+  language?: Language;
   colors?: {
     primary: string;
     text: string;
@@ -33,8 +35,12 @@ export default function ShopifyWidget() {
     active: null, 
     waiting: [], 
     totalWaiting: 0, 
-    queueClosed: false 
+    queueClosed: false,
+    language: 'nl'
   });
+
+  // Get translations based on shop language
+  const t = getTranslations(state.language);
 
   // Default colors (oranje theme)
   const primaryColor = state.colors?.primary || "#FF9500";
@@ -65,6 +71,7 @@ export default function ShopifyWidget() {
           waiting: j.waiting ?? [],
           totalWaiting: j.totalWaiting ?? 0,
           queueClosed: j.queueClosed ?? false,
+          language: j.language || 'nl',
           colors: j.colors,
         });
       } catch {
@@ -217,7 +224,7 @@ export default function ShopifyWidget() {
               letterSpacing: "0.5px",
             }}
           >
-            LIVE WACHTRIJ
+            {t.liveQueue}
           </h4>
         </div>
 
@@ -240,7 +247,7 @@ export default function ShopifyWidget() {
                 color: "#FF4444",
               }}
             >
-              Wachtrij is gesloten
+              {t.queueClosed}
             </div>
           </div>
         ) : !state.active ? (
@@ -261,7 +268,7 @@ export default function ShopifyWidget() {
                 color: "#495057",
               }}
             >
-              Geen actieve bestelling
+              {t.noActiveOrder}
             </div>
             <div
               style={{
@@ -270,7 +277,7 @@ export default function ShopifyWidget() {
                 marginTop: "4px",
               }}
             >
-              Wacht op de volgende live unboxing...
+              {t.waitingForNext}
             </div>
           </div>
         ) : (
@@ -375,7 +382,7 @@ export default function ShopifyWidget() {
             opacity: 0.7,
           }}
         >
-          Live updates • Automatisch ververst
+          {t.liveUpdates} • {t.autoRefresh}
         </div>
         </div>
 
@@ -402,7 +409,7 @@ export default function ShopifyWidget() {
                 margin: "0 0 16px 0",
               }}
             >
-              Wachtende in wachtrij
+              {t.waitingInQueue}
             </h4>
 
             <div style={{ 
@@ -451,7 +458,7 @@ export default function ShopifyWidget() {
                     textAlign: "center",
                   }}
                 >
-                  En nog {remainingWaiting} meer...
+                  {t.andMore} {remainingWaiting} meer...
                 </div>
               )}
             </div>
