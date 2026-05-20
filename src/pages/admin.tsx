@@ -29,6 +29,8 @@ export default function Admin() {
   const [keyInput, setKeyInput] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>("");
+  // Currently selected shop like-goal (shown in main admin area)
+  const [selectedLikeGoal, setSelectedLikeGoal] = useState<string>("");
 
   // New shop form
   const [newShopName, setNewShopName] = useState<string>("");
@@ -42,8 +44,6 @@ export default function Admin() {
   const [editShowNameBg, setEditShowNameBg] = useState<boolean>(true);
   const [editShowMoreBg, setEditShowMoreBg] = useState<boolean>(true);
   const [editLanguage, setEditLanguage] = useState<string>("nl");
-  // Like-goal editor
-  const [editLikeGoal, setEditLikeGoal] = useState<string>("");
 
 
   // Check localStorage voor opgeslagen admin key bij mount
@@ -95,6 +95,11 @@ export default function Admin() {
       void loadShops();
     }
   }, [isAuthenticated, loadShops]);
+  
+  // Keep selectedLikeGoal in sync with selectedShop
+  useEffect(() => {
+    setSelectedLikeGoal((selectedShop as any)?.like_goal || "");
+  }, [selectedShop]);
 
   const load = useCallback(async () => {
     if (!isAuthenticated || !adminKey || !selectedShop) return;
@@ -316,6 +321,36 @@ export default function Admin() {
     }
   };
 
+  // Save like goal for selected shop from main admin panel
+  const saveSelectedLikeGoal = async () => {
+    if (!adminKey || !selectedShop) {
+      alert("Geen shop geselecteerd of admin key fehlt");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/shops/update-like-goal?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedShop.id, likeGoal: selectedLikeGoal }),
+      });
+
+      if (!r.ok) {
+        const txt = await r.text();
+        throw new Error(txt || "Failed to save like goal");
+      }
+
+      await loadShops();
+      alert("Like goal opgeslagen");
+    } catch (err) {
+      console.error(err);
+      alert("Fout bij opslaan like goal");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Login scherm
   if (!isAuthenticated) {
     return (
@@ -525,7 +560,6 @@ export default function Admin() {
                         setEditShowNameBg(shop.show_name_background ?? true);
                         setEditShowMoreBg(shop.show_more_background ?? true);
                         setEditLanguage(shop.language || "nl");
-                        setEditLikeGoal((shop as any).like_goal || "");
                       }}
                       className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-all"
                     >
@@ -635,19 +669,6 @@ export default function Admin() {
                   </label>
                 </div>
 
-                {/* Like-goal editor */}
-                <div>
-                  <label className="block text-sm text-slate-300 mb-2">🎯 Like Goal</label>
-                  <input
-                    type="text"
-                    value={editLikeGoal}
-                    onChange={(e) => setEditLikeGoal(e.target.value)}
-                    placeholder="Bijv: 100k likes — Win a giveaway"
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Zichtbaar via /api/like-goal?store=&lt;shopId&gt; of in overlays</p>
-                </div>
-
                 {/* Preview */}
                 <div className="p-4 bg-black/30 rounded-xl">
                   <p className="text-slate-300 text-sm mb-2">Voorbeeld:</p>
@@ -711,15 +732,6 @@ export default function Admin() {
                       });
 
                       if (!r1.ok) throw new Error("Failed to update colors");
-
-                      // Then update like goal
-                      const r2 = await fetch(`/api/shops/update-like-goal?key=${encodeURIComponent(adminKey)}`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ id: editingShopColors.id, likeGoal: editLikeGoal }),
-                      });
-
-                      if (!r2.ok) throw new Error("Failed to update like goal");
 
                       await loadShops();
                       setEditingShopColors(null);
@@ -874,6 +886,46 @@ export default function Admin() {
                 >
                   🔗 Open
                 </button>
+              </div>
+
+              {/* New: quick Store ID + Like Goal panel */}
+              <div className="mt-3 p-4 bg-white/5 rounded-2xl shadow-inner">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm text-slate-300">Store ID</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-mono text-white/90 bg-white/5 px-2 py-1 rounded">{selectedShop.id}</div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedShop.id);
+                        alert(`Shop ID gekopieerd: ${selectedShop.id}`);
+                      }}
+                      className="px-3 py-1 bg-white/10 text-white rounded-lg hover:bg-white/20 text-sm"
+                    >
+                      Kopieer ID
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-slate-300 mb-2">🎯 Like Goal</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={selectedLikeGoal}
+                      onChange={(e) => setSelectedLikeGoal(e.target.value)}
+                      placeholder="Bijv: 100k likes — Win a giveaway"
+                      className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <button
+                      onClick={saveSelectedLikeGoal}
+                      disabled={isLoading || !adminKey}
+                      className="px-4 py-2 bg-green-500/20 text-green-200 rounded-xl hover:bg-green-500/30 transition-all disabled:opacity-50"
+                    >
+                      Opslaan
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">Zichtbaar via /api/like-goal?store=&lt;shopId&gt;</p>
+                </div>
               </div>
             </div>
           )}
