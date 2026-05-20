@@ -42,6 +42,8 @@ export default function Admin() {
   const [editShowNameBg, setEditShowNameBg] = useState<boolean>(true);
   const [editShowMoreBg, setEditShowMoreBg] = useState<boolean>(true);
   const [editLanguage, setEditLanguage] = useState<string>("nl");
+  // Like-goal editor
+  const [editLikeGoal, setEditLikeGoal] = useState<string>("");
 
 
   // Check localStorage voor opgeslagen admin key bij mount
@@ -474,12 +476,17 @@ export default function Admin() {
                     <div className="flex-1">
                       <div className="text-white font-semibold">{shop.display_name}</div>
                       <div className="text-slate-400 text-sm">Technische naam: {shop.name}</div>
-                      <div className="text-slate-500 text-xs mt-1">
-                        {shop.shopify_shop_domain ? (
-                          <span className="text-green-400">✓ Domain: {shop.shopify_shop_domain}</span>
-                        ) : (
-                          <span className="text-yellow-400">⚠️ Domain wordt auto-ingevuld bij eerste webhook</span>
-                        )}
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="text-sm font-mono text-white/90 bg-white/5 px-2 py-1 rounded">ID: {shop.id}</div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(shop.id);
+                            alert(`Shop ID gekopieerd: ${shop.id}`);
+                          }}
+                          className="px-3 py-1 bg-white/10 text-white rounded-lg hover:bg-white/20 text-sm"
+                        >
+                          Kopieer ID
+                        </button>
                       </div>
                     </div>
                     <button
@@ -518,6 +525,7 @@ export default function Admin() {
                         setEditShowNameBg(shop.show_name_background ?? true);
                         setEditShowMoreBg(shop.show_more_background ?? true);
                         setEditLanguage(shop.language || "nl");
+                        setEditLikeGoal("");
                       }}
                       className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-all"
                     >
@@ -627,6 +635,19 @@ export default function Admin() {
                   </label>
                 </div>
 
+                {/* Like-goal editor */}
+                <div>
+                  <label className="block text-sm text-slate-300 mb-2">🎯 Like Goal</label>
+                  <input
+                    type="text"
+                    value={editLikeGoal}
+                    onChange={(e) => setEditLikeGoal(e.target.value)}
+                    placeholder="Bijv: 100k likes — Win a giveaway"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Zichtbaar via /api/like-goal?store=&lt;shopId&gt; of in overlays</p>
+                </div>
+
                 {/* Preview */}
                 <div className="p-4 bg-black/30 rounded-xl">
                   <p className="text-slate-300 text-sm mb-2">Voorbeeld:</p>
@@ -670,7 +691,46 @@ export default function Admin() {
                   Annuleren
                 </button>
                 <button
-                  onClick={handleUpdateColors}
+                  onClick={async () => {
+                    if (!editingShopColors) return;
+                    setIsLoading(true);
+                    try {
+                      // First update colors and language
+                      const r1 = await fetch(`/api/shops/update-colors?key=${encodeURIComponent(adminKey)}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          id: editingShopColors.id,
+                          primaryColor: editPrimaryColor,
+                          textColor: editTextColor,
+                          backgroundColor: editBackgroundColor,
+                          showNameBackground: editShowNameBg,
+                          showMoreBackground: editShowMoreBg,
+                          language: editLanguage,
+                        }),
+                      });
+
+                      if (!r1.ok) throw new Error("Failed to update colors");
+
+                      // Then update like goal
+                      const r2 = await fetch(`/api/shops/update-like-goal?key=${encodeURIComponent(adminKey)}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: editingShopColors.id, likeGoal: editLikeGoal }),
+                      });
+
+                      if (!r2.ok) throw new Error("Failed to update like goal");
+
+                      await loadShops();
+                      setEditingShopColors(null);
+                      alert("Instellingen succesvol bijgewerkt!");
+                    } catch (err) {
+                      console.error(err);
+                      alert("Fout bij bijwerken instellingen");
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
                   disabled={isLoading}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:scale-105 transition-all font-semibold disabled:opacity-50"
                 >
