@@ -525,7 +525,7 @@ export default function Admin() {
                         setEditShowNameBg(shop.show_name_background ?? true);
                         setEditShowMoreBg(shop.show_more_background ?? true);
                         setEditLanguage(shop.language || "nl");
-                        setEditLikeGoal("");
+                        setEditLikeGoal((shop as any).like_goal || "");
                       }}
                       className="px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-all"
                     >
