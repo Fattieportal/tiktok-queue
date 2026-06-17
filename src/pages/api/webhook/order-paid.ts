@@ -180,9 +180,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .filter(Boolean);
 
   const isTikTokUnboxing = shippingTitles.some((t) => t.toLowerCase().includes("tiktok live unboxing"));
+  const isShippedBySeller = shippingTitles.some((t) => t.toLowerCase().includes("shipped by seller"));
   const isMysteryExcluded = shippingTitles.some((t) => t.toLowerCase().includes("ongeopende mysterybox"));
 
-  if (!isTikTokUnboxing || isMysteryExcluded) {
+  if ((!isTikTokUnboxing && !isShippedBySeller) || isMysteryExcluded) {
     return res.status(200).json({ ok: true, status: "ignored", shippingTitles });
   }
 
