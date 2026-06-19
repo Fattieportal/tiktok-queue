@@ -196,17 +196,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .filter(Boolean);
 
   console.log("[WEBHOOK] Shipping titles:", shippingTitles);
+  console.log("[WEBHOOK] Shipping titles length:", shippingTitles.length);
+  console.log("[WEBHOOK] Raw shipping_lines:", JSON.stringify(order.shipping_lines));
 
   const isTikTokUnboxing = shippingTitles.some((t) => t.toLowerCase().includes("tiktok live unboxing"));
   const isShippedBySeller = shippingTitles.some((t) => t.toLowerCase().includes("shipped by seller"));
   const isMysteryExcluded = shippingTitles.some((t) => t.toLowerCase().includes("ongeopende mysterybox"));
+  
+  // If no shipping titles at all, accept the order (probably TikTok Shop)
+  const hasNoShippingInfo = shippingTitles.length === 0;
 
-  console.log("[WEBHOOK] Checks:", { isTikTokUnboxing, isShippedBySeller, isMysteryExcluded });
+  console.log("[WEBHOOK] Checks:", { 
+    isTikTokUnboxing, 
+    isShippedBySeller, 
+    isMysteryExcluded,
+    hasNoShippingInfo,
+    shouldAccept: (isTikTokUnboxing || isShippedBySeller || hasNoShippingInfo) && !isMysteryExcluded
+  });
 
-  if ((!isTikTokUnboxing && !isShippedBySeller) || isMysteryExcluded) {
-    console.log("[WEBHOOK] Order ignored - shipping method or mystery box exclusion");
-    return res.status(200).json({ ok: true, status: "ignored", shippingTitles });
+  // Accept if: (has valid shipping method OR no shipping info) AND not mystery box
+  if ((!isTikTokUnboxing && !isShippedBySeller && !hasNoShippingInfo) || isMysteryExcluded) {
+    console.log("[WEBHOOK] Order ignored - shipping method check failed or mystery box exclusion");
+    return res.status(200).json({ ok: true, status: "ignored", shippingTitles, hasNoShippingInfo });
   }
+
+  console.log("[WEBHOOK] Order ACCEPTED - proceeding to add to queue");
 
   const shopifyOrderId = order.id;
   if (!shopifyOrderId) {
