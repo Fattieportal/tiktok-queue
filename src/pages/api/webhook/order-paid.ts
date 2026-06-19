@@ -37,6 +37,9 @@ type ShopifyOrderPaidWebhook = {
   customer?: ShopifyCustomer | null;
   shipping_address?: ShopifyAddress | null;
   billing_address?: ShopifyAddress | null;
+  source_identifier?: string | null;
+  source_name?: string | null;
+  tags?: string | null;
 };
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -92,6 +95,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Get shop domain from Shopify header
   const shopDomain = (req.headers["x-shopify-shop-domain"] as string | undefined) ?? null;
+  
+  console.log("[WEBHOOK] Received webhook from domain:", shopDomain);
+  console.log("[WEBHOOK] All headers:", JSON.stringify(req.headers, null, 2));
   
   if (!shopDomain) {
     return res.status(400).json({ ok: false, error: "Missing x-shopify-shop-domain header" });
@@ -175,15 +181,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: "Invalid JSON" });
   }
 
+  // Log order details voor debugging
+  console.log("[WEBHOOK] Order details:", {
+    orderId: order.id,
+    orderNumber: order.order_number,
+    name: order.name,
+    sourceIdentifier: order.source_identifier,
+    sourceName: order.source_name,
+    tags: order.tags
+  });
+
   const shippingTitles: string[] = (order.shipping_lines ?? [])
     .map((x) => (x?.title ?? "").trim())
     .filter(Boolean);
+
+  console.log("[WEBHOOK] Shipping titles:", shippingTitles);
 
   const isTikTokUnboxing = shippingTitles.some((t) => t.toLowerCase().includes("tiktok live unboxing"));
   const isShippedBySeller = shippingTitles.some((t) => t.toLowerCase().includes("shipped by seller"));
   const isMysteryExcluded = shippingTitles.some((t) => t.toLowerCase().includes("ongeopende mysterybox"));
 
+  console.log("[WEBHOOK] Checks:", { isTikTokUnboxing, isShippedBySeller, isMysteryExcluded });
+
   if ((!isTikTokUnboxing && !isShippedBySeller) || isMysteryExcluded) {
+    console.log("[WEBHOOK] Order ignored - shipping method or mystery box exclusion");
     return res.status(200).json({ ok: true, status: "ignored", shippingTitles });
   }
 

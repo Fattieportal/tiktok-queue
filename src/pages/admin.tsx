@@ -511,7 +511,7 @@ export default function Admin() {
                     <div className="flex-1">
                       <div className="text-white font-semibold">{shop.display_name}</div>
                       <div className="text-slate-400 text-sm">Technische naam: {shop.name}</div>
-                      <div className="mt-2 flex items-center gap-2">
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
                         <div className="text-sm font-mono text-white/90 bg-white/5 px-2 py-1 rounded">ID: {shop.id}</div>
                         <button
                           onClick={() => {
@@ -522,6 +522,28 @@ export default function Admin() {
                         >
                           Kopieer ID
                         </button>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        {shop.shopify_shop_domain ? (
+                          <div className="text-sm text-green-300 bg-green-500/20 px-2 py-1 rounded flex items-center gap-2">
+                            <span>✅ Shopify: {shop.shopify_shop_domain}</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-yellow-300 bg-yellow-500/20 px-2 py-1 rounded flex items-center gap-2">
+                            <span>⚠️ Shopify domain niet ingesteld</span>
+                            <button
+                              onClick={() => {
+                                const domain = prompt("Voer je Shopify domain in (bijv: mijnshop.myshopify.com):");
+                                if (domain) {
+                                  handleUpdateDomain(shop.id, domain);
+                                }
+                              }}
+                              className="px-2 py-0.5 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700"
+                            >
+                              Instellen
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <button
