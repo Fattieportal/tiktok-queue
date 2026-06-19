@@ -15,20 +15,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { shopId, shopifyDomain } = req.body;
+  const { shopId, domain, shopifyDomain } = req.body;
 
   if (!shopId) {
     return res.status(400).json({ error: "shopId is required" });
   }
 
-  if (!shopifyDomain) {
-    return res.status(400).json({ error: "shopifyDomain is required" });
+  const domainToUpdate = domain || shopifyDomain;
+  
+  if (!domainToUpdate) {
+    return res.status(400).json({ error: "domain or shopifyDomain is required" });
   }
 
   try {
     const { error } = await supabase
       .from("shops")
-      .update({ shopify_shop_domain: shopifyDomain })
+      .update({ shopify_shop_domain: domainToUpdate })
       .eq("id", shopId);
 
     if (error) throw error;
@@ -37,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ok: true, 
       message: "Shopify domain updated successfully",
       shopId,
-      shopifyDomain 
+      shopifyDomain: domainToUpdate
     });
   } catch (error) {
     console.error("Error updating shopify domain:", error);

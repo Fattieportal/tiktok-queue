@@ -288,6 +288,32 @@ export default function Admin() {
     }
   };
 
+  const handleUpdateDomain = async (shopId: string, domain: string) => {
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/shops/update-domain?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shopId,
+          domain: domain.trim(),
+        }),
+      });
+
+      if (r.ok) {
+        await loadShops();
+        alert("Shopify domain succesvol bijgewerkt!");
+      } else {
+        const err = await r.json();
+        alert(`Fout: ${err.error || "Onbekende fout"}`);
+      }
+    } catch {
+      alert("Fout bij bijwerken domain");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const toggleQueueStatus = async () => {
     if (!selectedShop) return;
 
