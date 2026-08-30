@@ -65,9 +65,19 @@ Vercel zal automatisch deployen.
 
 ### **Voor Admins: Streamer Uitchecken**
 
-1. Klik op **"Check-out"** knop naast de actieve streamer
-2. De streamer wordt gemarkeerd als "offline"
-3. Nieuwe orders worden NIET meer aan een streamer toegeschreven (tot de volgende check-in)
+1. **Optie A - Via Admin Panel (`/admin`)**:
+   - Klik op **"Check-out"** knop naast de actieve streamer
+   - De streamer wordt gemarkeerd als "offline"
+
+2. **Optie B - Via Streamer Stats (`/streamer-stats`)**:
+   - Ga naar de statistieken pagina
+   - Zoek de actieve streamer (🟢 ACTIEF)
+   - Klik op de **"Check-out"** knop in de acties kolom
+
+**Na uitchecken:**
+- Nieuwe orders worden NIET meer aan een streamer toegeschreven (tot de volgende check-in)
+- De checkout tijd wordt vastgelegd
+- De streamer blijft zichtbaar in statistieken met al hun orders
 
 ### **Voor Eigenaren: Statistieken Bekijken**
 
@@ -96,13 +106,24 @@ URL: **`https://your-domain.vercel.app/streamer-stats`**
 
 | Kolom | Beschrijving |
 |-------|-------------|
+| **▶** | Klik om order details uit te klappen |
 | **Status** | 🟢 ACTIEF = streamer is nu live<br>⚫ Offline = streamer is uitgecheckt |
 | **Naam** | Naam van de streamer |
-| **Totaal Orders** | Totaal aantal orders ooit |
+| **Totaal** | Totaal aantal orders ooit |
 | **Voltooid** | Aantal voltooide orders |
 | **Wachtend** | Aantal orders nog in wachtrij |
 | **Ingecheckt** | Datum/tijd van laatste check-in |
 | **Uitgecheckt** | Datum/tijd van laatste check-out |
+| **Acties** | Check-out knop (alleen voor actieve streamers) |
+
+### **Expandable Order Details**
+
+Klik op de **▶** pijl naast een streamer om te zien:
+- **Order nummer** - Shopify order nummer
+- **Klant naam** - Voornaam van de klant
+- **Producten** - Volledige product informatie
+- **Status** - Live status van de order (Voltooid ✓ / Actief ▶ / Wachtend ⏳)
+- **Datum** - Wanneer de order binnenkwam
 
 ### **Summary Cards**
 

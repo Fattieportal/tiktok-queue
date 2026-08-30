@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
+type OrderDetail = {
+  id: number;
+  order_number: string;
+  first_name: string;
+  product_info: string | null;
+  status: string;
+  created_at: string;
+};
+
 type StreamerStat = {
   id: string;
   name: string;
@@ -10,11 +19,13 @@ type StreamerStat = {
   completed_orders: number;
   waiting_orders: number;
   active_orders: number;
+  skipped_orders?: number;
   first_order_at: string | null;
   last_order_at: string | null;
   checked_in_at: string | null;
   checked_out_at: string | null;
   is_active: boolean;
+  order_details?: OrderDetail[];
 };
 
 type Shop = {
@@ -31,6 +42,7 @@ export default function StreamerStats() {
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [streamers, setStreamers] = useState<StreamerStat[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedStreamer, setExpandedStreamer] = useState<string | null>(null);
 
   // Check of admin key geldig is
   const handleLogin = async (e: React.FormEvent) => {
@@ -78,6 +90,40 @@ export default function StreamerStats() {
     const interval = setInterval(fetchStats, 10000); // Update elke 10 sec
     return () => clearInterval(interval);
   }, [isAuthenticated, selectedShop, adminKey]);
+
+  const handleCheckOut = async (streamerId: string, streamerName: string) => {
+    if (!confirm(`Weet je zeker dat je ${streamerName} wilt uitchecken?`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ streamerId }),
+      });
+
+      if (r.ok) {
+        alert(`${streamerName} is uitgecheckt!`);
+        // Refresh data
+        const statsR = await fetch(
+          `/api/streamers/list?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop?.id}`
+        );
+        if (statsR.ok) {
+          const data = await statsR.json();
+          setStreamers(data.streamers || []);
+        }
+      } else {
+        const err = await r.json();
+        alert(`Fout: ${err.error || "Onbekende fout"}`);
+      }
+    } catch {
+      alert("Fout bij uitchecken streamer");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -305,16 +351,22 @@ export default function StreamerStats() {
           }}
         >
           <div style={{ padding: "20px", borderBottom: "2px solid #f0f0f0" }}>
-            <h2 style={{ margin: 0 }}>Streamer Overzicht</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ margin: 0 }}>Streamer Overzicht</h2>
+              <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                💡 Klik op ▶ om orders te bekijken
+              </div>
+            </div>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f8f9fa" }}>
+                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600", width: "40px" }}></th>
                   <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Status</th>
                   <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Naam</th>
                   <th style={{ padding: "16px", textAlign: "right", fontWeight: "600" }}>
-                    Totaal Orders
+                    Totaal
                   </th>
                   <th style={{ padding: "16px", textAlign: "right", fontWeight: "600" }}>
                     Voltooid
@@ -328,6 +380,7 @@ export default function StreamerStats() {
                   <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>
                     Uitgecheckt
                   </th>
+                  <th style={{ padding: "16px", textAlign: "center", fontWeight: "600" }}>Acties</th>
                 </tr>
               </thead>
               <tbody>
@@ -339,59 +392,172 @@ export default function StreamerStats() {
                   </tr>
                 ) : (
                   streamers.map((streamer) => (
-                    <tr
-                      key={streamer.id}
-                      style={{
-                        borderBottom: "1px solid #f0f0f0",
-                        background: streamer.is_active ? "#f0fdf4" : "white",
-                      }}
-                    >
-                      <td style={{ padding: "16px" }}>
-                        {streamer.is_active ? (
-                          <span
+                    <>
+                      <tr
+                        key={streamer.id}
+                        style={{
+                          borderBottom: expandedStreamer === streamer.id ? "none" : "1px solid #f0f0f0",
+                          background: streamer.is_active ? "#f0fdf4" : "white",
+                        }}
+                      >
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          <button
+                            onClick={() => setExpandedStreamer(expandedStreamer === streamer.id ? null : streamer.id)}
                             style={{
-                              background: "#10b981",
-                              color: "white",
-                              padding: "4px 12px",
-                              borderRadius: "12px",
-                              fontSize: "12px",
-                              fontWeight: "600",
+                              background: "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: "18px",
+                              transition: "transform 0.2s",
+                              transform: expandedStreamer === streamer.id ? "rotate(90deg)" : "rotate(0deg)",
                             }}
+                            title="Bekijk orders"
                           >
-                            🟢 ACTIEF
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              background: "#e5e7eb",
-                              color: "#6b7280",
-                              padding: "4px 12px",
-                              borderRadius: "12px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                            }}
-                          >
-                            ⚫ Offline
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "16px", fontWeight: "600" }}>{streamer.name}</td>
-                      <td style={{ padding: "16px", textAlign: "right", fontSize: "18px", fontWeight: "bold" }}>
-                        {streamer.total_orders}
-                      </td>
-                      <td style={{ padding: "16px", textAlign: "right", color: "#10b981" }}>
-                        {streamer.completed_orders}
-                      </td>
-                      <td style={{ padding: "16px", textAlign: "right", color: "#f59e0b" }}>
-                        {streamer.waiting_orders}
-                      </td>
-                      <td style={{ padding: "16px", fontSize: "14px" }}>
-                        {formatDate(streamer.checked_in_at)}
-                      </td>
-                      <td style={{ padding: "16px", fontSize: "14px" }}>
-                        {formatDate(streamer.checked_out_at)}
-                      </td>
-                    </tr>
+                            ▶
+                          </button>
+                        </td>
+                        <td style={{ padding: "16px" }}>
+                          {streamer.is_active ? (
+                            <span
+                              style={{
+                                background: "#10b981",
+                                color: "white",
+                                padding: "4px 12px",
+                                borderRadius: "12px",
+                                fontSize: "12px",
+                                fontWeight: "600",
+                              }}
+                            >
+                              🟢 ACTIEF
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                background: "#e5e7eb",
+                                color: "#6b7280",
+                                padding: "4px 12px",
+                                borderRadius: "12px",
+                                fontSize: "12px",
+                                fontWeight: "600",
+                              }}
+                            >
+                              ⚫ Offline
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: "16px", fontWeight: "600" }}>{streamer.name}</td>
+                        <td style={{ padding: "16px", textAlign: "right", fontSize: "18px", fontWeight: "bold" }}>
+                          {streamer.total_orders}
+                        </td>
+                        <td style={{ padding: "16px", textAlign: "right", color: "#10b981" }}>
+                          {streamer.completed_orders}
+                        </td>
+                        <td style={{ padding: "16px", textAlign: "right", color: "#f59e0b" }}>
+                          {streamer.waiting_orders}
+                        </td>
+                        <td style={{ padding: "16px", fontSize: "14px" }}>
+                          {formatDate(streamer.checked_in_at)}
+                        </td>
+                        <td style={{ padding: "16px", fontSize: "14px" }}>
+                          {formatDate(streamer.checked_out_at)}
+                        </td>
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          {streamer.is_active && (
+                            <button
+                              onClick={() => handleCheckOut(streamer.id, streamer.name)}
+                              disabled={isLoading}
+                              style={{
+                                padding: "6px 12px",
+                                background: "#ef4444",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: isLoading ? "not-allowed" : "pointer",
+                                fontSize: "13px",
+                                fontWeight: "600",
+                                opacity: isLoading ? 0.5 : 1,
+                              }}
+                            >
+                              Check-out
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                      
+                      {/* Expandable row met order details */}
+                      {expandedStreamer === streamer.id && streamer.order_details && streamer.order_details.length > 0 && (
+                        <tr key={`${streamer.id}-details`}>
+                          <td colSpan={9} style={{ padding: 0, background: "#f8f9fa" }}>
+                            <div style={{ padding: "16px 32px" }}>
+                              <h4 style={{ margin: "0 0 12px 0", color: "#374151", fontSize: "14px", fontWeight: "600" }}>
+                                📦 Orders van {streamer.name} ({streamer.order_details.length})
+                              </h4>
+                              <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                                <table style={{ width: "100%", fontSize: "13px" }}>
+                                  <thead>
+                                    <tr style={{ background: "#e5e7eb" }}>
+                                      <th style={{ padding: "8px", textAlign: "left" }}>Order #</th>
+                                      <th style={{ padding: "8px", textAlign: "left" }}>Klant</th>
+                                      <th style={{ padding: "8px", textAlign: "left" }}>Producten</th>
+                                      <th style={{ padding: "8px", textAlign: "center" }}>Status</th>
+                                      <th style={{ padding: "8px", textAlign: "left" }}>Datum</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {streamer.order_details.map((order) => (
+                                      <tr key={order.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
+                                        <td style={{ padding: "8px" }}>
+                                          <span style={{ fontFamily: "monospace", fontWeight: "600" }}>
+                                            {order.order_number}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: "8px" }}>{order.first_name}</td>
+                                        <td style={{ padding: "8px", maxWidth: "300px" }}>
+                                          <div style={{ 
+                                            whiteSpace: "nowrap", 
+                                            overflow: "hidden", 
+                                            textOverflow: "ellipsis",
+                                            color: "#6b7280"
+                                          }}>
+                                            {order.product_info || "Geen product info"}
+                                          </div>
+                                        </td>
+                                        <td style={{ padding: "8px", textAlign: "center" }}>
+                                          <span style={{
+                                            padding: "3px 8px",
+                                            borderRadius: "6px",
+                                            fontSize: "11px",
+                                            fontWeight: "600",
+                                            background: 
+                                              order.status === "completed" ? "#d1fae5" :
+                                              order.status === "active" ? "#dbeafe" :
+                                              order.status === "waiting" ? "#fef3c7" :
+                                              "#f3f4f6",
+                                            color:
+                                              order.status === "completed" ? "#065f46" :
+                                              order.status === "active" ? "#1e40af" :
+                                              order.status === "waiting" ? "#92400e" :
+                                              "#374151",
+                                          }}>
+                                            {order.status === "completed" ? "✓ Voltooid" :
+                                             order.status === "active" ? "▶ Actief" :
+                                             order.status === "waiting" ? "⏳ Wachtend" :
+                                             order.status}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: "8px", color: "#6b7280" }}>
+                                          {formatDate(order.created_at)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))
                 )}
               </tbody>
