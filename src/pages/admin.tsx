@@ -266,26 +266,25 @@ export default function Admin() {
       }
 
       // Toon lijst met orders om uit te kiezen
-      const orderList = orders.map((o: any, idx: number) => 
-        `${idx + 1}. #${o.order_number} - ${o.first_name} ${o.product_info ? `(${o.product_info})` : ''}`
+      const orderList = orders.map((o: any) => 
+        `#${o.order_number} - ${o.first_name} ${o.product_info ? `(${o.product_info})` : ''}`
       ).join('\n');
 
-      const selection = prompt(`Selecteer de START ORDER voor deze sessie:\n\n${orderList}\n\nVoer het nummer in (bijv. 1, 2, 3...):`);
+      const selection = prompt(`Selecteer de START ORDER voor deze sessie:\n\n${orderList}\n\nVoer het ordernummer in (bijv. ${orders[0].order_number}):`);
       
       if (!selection) {
         setIsLoading(false);
         return;
       }
 
-      const selectedIndex = parseInt(selection, 10) - 1;
+      // Zoek order op basis van ordernummer
+      const selectedOrder = orders.find((o: any) => o.order_number === selection.trim());
       
-      if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= orders.length) {
-        alert("Ongeldige selectie!");
+      if (!selectedOrder) {
+        alert(`Order #${selection} niet gevonden in de lijst!`);
         setIsLoading(false);
         return;
       }
-
-      const selectedOrder = orders[selectedIndex];
 
       // Check-in met selected order ID
       const r = await fetch(`/api/streamers/check-in?key=${encodeURIComponent(adminKey)}`, {
@@ -342,26 +341,25 @@ export default function Admin() {
       }
 
       // Toon lijst met orders om uit te kiezen
-      const orderList = orders.map((o: any, idx: number) => 
-        `${idx + 1}. #${o.order_number} - ${o.first_name} ${o.product_info ? `(${o.product_info})` : ''}`
+      const orderList = orders.map((o: any) => 
+        `#${o.order_number} - ${o.first_name} ${o.product_info ? `(${o.product_info})` : ''}`
       ).join('\n');
 
-      const selection = prompt(`Selecteer de EIND ORDER voor deze sessie:\n\n${orderList}\n\nVoer het nummer in (bijv. 1, 2, 3...):`);
+      const selection = prompt(`Selecteer de EIND ORDER voor deze sessie:\n\n${orderList}\n\nVoer het ordernummer in (bijv. ${orders[0].order_number}):`);
       
       if (!selection) {
         setIsLoading(false);
         return;
       }
 
-      const selectedIndex = parseInt(selection, 10) - 1;
+      // Zoek order op basis van ordernummer
+      const selectedOrder = orders.find((o: any) => o.order_number === selection.trim());
       
-      if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= orders.length) {
-        alert("Ongeldige selectie!");
+      if (!selectedOrder) {
+        alert(`Order #${selection} niet gevonden in de lijst!`);
         setIsLoading(false);
         return;
       }
-
-      const selectedOrder = orders[selectedIndex];
 
       // Check-out met selected order ID
       const r = await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
