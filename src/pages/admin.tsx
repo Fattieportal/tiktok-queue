@@ -243,46 +243,73 @@ export default function Admin() {
 
   const handleStreamerCheckIn = async () => {
     if (!streamerName.trim() || !selectedShop) {
-      alert("Voer een streamer naam in!");
-      return;
-    }
-
-    // Vraag om start order ID
-    const startOrderIdInput = prompt("Voer het ID in van de eerste bestelling (start order) voor deze sessie:");
-    if (!startOrderIdInput || !startOrderIdInput.trim()) {
-      alert("Start order ID is verplicht!");
-      return;
-    }
-
-    const startOrderId = parseInt(startOrderIdInput.trim(), 10);
-    if (isNaN(startOrderId)) {
-      alert("Start order ID moet een geldig nummer zijn!");
+      alert("Selecteer een streamer!");
       return;
     }
 
     setIsLoading(true);
     try {
+      // Haal beschikbare queue orders op
+      const ordersRes = await fetch(`/api/queue/orders?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`);
+      
+      if (!ordersRes.ok) {
+        throw new Error("Kon orders niet ophalen");
+      }
+
+      const ordersData = await ordersRes.json();
+      const orders = ordersData.orders || [];
+
+      if (orders.length === 0) {
+        alert("Er zijn geen orders beschikbaar om als startorder te selecteren!");
+        setIsLoading(false);
+        return;
+      }
+
+      // Toon lijst met orders om uit te kiezen
+      const orderList = orders.map((o: any, idx: number) => 
+        `${idx + 1}. #${o.order_number} - ${o.first_name} ${o.product_info ? `(${o.product_info})` : ''}`
+      ).join('\n');
+
+      const selection = prompt(`Selecteer de START ORDER voor deze sessie:\n\n${orderList}\n\nVoer het nummer in (bijv. 1, 2, 3...):`);
+      
+      if (!selection) {
+        setIsLoading(false);
+        return;
+      }
+
+      const selectedIndex = parseInt(selection, 10) - 1;
+      
+      if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= orders.length) {
+        alert("Ongeldige selectie!");
+        setIsLoading(false);
+        return;
+      }
+
+      const selectedOrder = orders[selectedIndex];
+
+      // Check-in met selected order ID
       const r = await fetch(`/api/streamers/check-in?key=${encodeURIComponent(adminKey)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           streamerName: streamerName.trim(),
           shopId: selectedShop.id,
-          startOrderId: startOrderId,
+          startOrderId: selectedOrder.id,
         }),
       });
 
       if (r.ok) {
         const data = await r.json();
-        alert(data.message);
+        alert(`${data.message}\nStart order: #${selectedOrder.order_number} - ${selectedOrder.first_name}`);
         setStreamerName("");
         await fetchActiveStreamer();
-        await fetchAvailableStreamers(); // Refresh lijst voor het geval het een nieuwe streamer was
+        await fetchAvailableStreamers();
       } else {
         const err = await r.json();
         alert(`Fout: ${err.error || "Onbekende fout"}`);
       }
-    } catch {
+    } catch (error) {
+      console.error(error);
       alert("Fout bij inchecken streamer");
     } finally {
       setIsLoading(false);
@@ -296,39 +323,66 @@ export default function Admin() {
       return;
     }
 
-    // Vraag om end order ID
-    const endOrderIdInput = prompt("Voer het ID in van de laatste bestelling (end order) voor deze sessie:");
-    if (!endOrderIdInput || !endOrderIdInput.trim()) {
-      alert("End order ID is verplicht!");
-      return;
-    }
-
-    const endOrderId = parseInt(endOrderIdInput.trim(), 10);
-    if (isNaN(endOrderId)) {
-      alert("End order ID moet een geldig nummer zijn!");
-      return;
-    }
-
     setIsLoading(true);
     try {
+      // Haal beschikbare queue orders op
+      const ordersRes = await fetch(`/api/queue/orders?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`);
+      
+      if (!ordersRes.ok) {
+        throw new Error("Kon orders niet ophalen");
+      }
+
+      const ordersData = await ordersRes.json();
+      const orders = ordersData.orders || [];
+
+      if (orders.length === 0) {
+        alert("Er zijn geen orders beschikbaar om als eindorder te selecteren!");
+        setIsLoading(false);
+        return;
+      }
+
+      // Toon lijst met orders om uit te kiezen
+      const orderList = orders.map((o: any, idx: number) => 
+        `${idx + 1}. #${o.order_number} - ${o.first_name} ${o.product_info ? `(${o.product_info})` : ''}`
+      ).join('\n');
+
+      const selection = prompt(`Selecteer de EIND ORDER voor deze sessie:\n\n${orderList}\n\nVoer het nummer in (bijv. 1, 2, 3...):`);
+      
+      if (!selection) {
+        setIsLoading(false);
+        return;
+      }
+
+      const selectedIndex = parseInt(selection, 10) - 1;
+      
+      if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= orders.length) {
+        alert("Ongeldige selectie!");
+        setIsLoading(false);
+        return;
+      }
+
+      const selectedOrder = orders[selectedIndex];
+
+      // Check-out met selected order ID
       const r = await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           streamerId: activeStreamer.id,
-          endOrderId: endOrderId,
+          endOrderId: selectedOrder.id,
         }),
       });
 
       if (r.ok) {
         const data = await r.json();
-        alert(data.message);
+        alert(`${data.message}\nEind order: #${selectedOrder.order_number} - ${selectedOrder.first_name}`);
         await fetchActiveStreamer();
       } else {
         const err = await r.json();
         alert(`Fout: ${err.error || "Onbekende fout"}`);
       }
-    } catch {
+    } catch (error) {
+      console.error(error);
       alert("Fout bij uitchecken streamer");
     } finally {
       setIsLoading(false);
@@ -1159,59 +1213,40 @@ export default function Admin() {
                   )}
 
                   <div className="flex flex-col gap-2">
-                    {availableStreamers.length > 0 && (
-                      <div>
-                        <label className="block text-xs text-slate-300 mb-1">Selecteer bestaande streamer:</label>
-                        <select
-                          value={streamerName}
-                          onChange={(e) => setStreamerName(e.target.value)}
-                          className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:bg-white/15 transition-all"
-                          style={{
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'right 0.75rem center',
-                            backgroundSize: '1.5rem',
-                            paddingRight: '2.5rem'
-                          }}
-                        >
-                          <option value="" className="bg-slate-900">-- Kies een streamer --</option>
-                          {availableStreamers.map((s) => (
-                            <option key={s.id} value={s.name} className="bg-slate-900">
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2">
-                      {availableStreamers.length > 0 && (
-                        <div className="flex-shrink-0 text-xs text-slate-400">of typ nieuwe:</div>
-                      )}
-                      <input
-                        type="text"
+                    <div>
+                      <label className="block text-xs text-slate-300 mb-1">Selecteer streamer:</label>
+                      <select
                         value={streamerName}
                         onChange={(e) => setStreamerName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && streamerName.trim()) {
-                            handleStreamerCheckIn();
-                          }
+                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:bg-white/15 transition-all"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 0.75rem center',
+                          backgroundSize: '1.5rem',
+                          paddingRight: '2.5rem'
                         }}
-                        placeholder={availableStreamers.length > 0 ? "Nieuwe streamer..." : "Streamer naam..."}
-                        className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                      <button
-                        onClick={handleStreamerCheckIn}
-                        disabled={isLoading || !streamerName.trim()}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:scale-105 transition-all disabled:opacity-50 font-medium whitespace-nowrap"
                       >
-                        Check-in
-                      </button>
+                        <option value="" className="bg-slate-900">-- Kies een streamer --</option>
+                        {availableStreamers.map((s) => (
+                          <option key={s.id} value={s.name} className="bg-slate-900">
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+                    
+                    <button
+                      onClick={handleStreamerCheckIn}
+                      disabled={isLoading || !streamerName.trim()}
+                      className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:scale-105 transition-all disabled:opacity-50 font-medium"
+                    >
+                      Check-in
+                    </button>
                   </div>
                   <p className="text-xs text-slate-400 mt-2">
                     💡 Check-in streamer voordat de live begint. Alle nieuwe orders worden automatisch toegeschreven.
-                    {availableStreamers.length === 0 && " Voeg streamers toe via de statistieken pagina."}
+                    {availableStreamers.length === 0 && " Voeg eerst streamers toe via de statistieken pagina."}
                   </p>
                 </div>
               </div>
