@@ -247,6 +247,19 @@ export default function Admin() {
       return;
     }
 
+    // Vraag om start order ID
+    const startOrderIdInput = prompt("Voer het ID in van de eerste bestelling (start order) voor deze sessie:");
+    if (!startOrderIdInput || !startOrderIdInput.trim()) {
+      alert("Start order ID is verplicht!");
+      return;
+    }
+
+    const startOrderId = parseInt(startOrderIdInput.trim(), 10);
+    if (isNaN(startOrderId)) {
+      alert("Start order ID moet een geldig nummer zijn!");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const r = await fetch(`/api/streamers/check-in?key=${encodeURIComponent(adminKey)}`, {
@@ -255,6 +268,7 @@ export default function Admin() {
         body: JSON.stringify({
           streamerName: streamerName.trim(),
           shopId: selectedShop.id,
+          startOrderId: startOrderId,
         }),
       });
 
@@ -282,6 +296,19 @@ export default function Admin() {
       return;
     }
 
+    // Vraag om end order ID
+    const endOrderIdInput = prompt("Voer het ID in van de laatste bestelling (end order) voor deze sessie:");
+    if (!endOrderIdInput || !endOrderIdInput.trim()) {
+      alert("End order ID is verplicht!");
+      return;
+    }
+
+    const endOrderId = parseInt(endOrderIdInput.trim(), 10);
+    if (isNaN(endOrderId)) {
+      alert("End order ID moet een geldig nummer zijn!");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const r = await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
@@ -289,6 +316,7 @@ export default function Admin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           streamerId: activeStreamer.id,
+          endOrderId: endOrderId,
         }),
       });
 

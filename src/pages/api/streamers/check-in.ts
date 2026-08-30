@@ -15,13 +15,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { streamerName, shopId } = req.body;
+  const { streamerName, shopId, startOrderId } = req.body;
 
   if (!streamerName || !shopId) {
     return res.status(400).json({ error: "Missing streamerName or shopId" });
   }
 
+  if (!startOrderId) {
+    return res.status(400).json({ error: "Missing startOrderId - selecteer een startorder" });
+  }
+
   try {
+    // Verificeer dat de start order bestaat en van de juiste shop is
+    const { data: startOrder } = await supabaseAdmin
+      .from("queue_entries")
+      .select("*")
+      .eq("id", startOrderId)
+      .eq("shop_id", shopId)
+      .single();
+
+    if (!startOrder) {
+      return res.status(400).json({ error: "Start order niet gevonden of verkeerde shop" });
+    }
+
     // Check-out alle andere actieve streamers voor deze shop
     await supabaseAdmin
       .from("streamers")
@@ -50,6 +66,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           is_active: true,
           checked_in_at: new Date().toISOString(),
           checked_out_at: null,
+          start_order_id: startOrderId,
+          end_order_id: null, // Reset end order
+          session_count: (existing.session_count || 0) + 1,
         })
         .eq("id", existing.id)
         .select()
@@ -66,6 +85,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           shop_id: shopId,
           is_active: true,
           checked_in_at: new Date().toISOString(),
+          start_order_id: startOrderId,
+          session_count: 1,
         })
         .select()
         .single();

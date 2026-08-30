@@ -15,18 +15,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { streamerId } = req.body;
+  const { streamerId, endOrderId } = req.body;
 
   if (!streamerId) {
     return res.status(400).json({ error: "Missing streamerId" });
   }
 
+  if (!endOrderId) {
+    return res.status(400).json({ error: "Missing endOrderId - selecteer een eindorder" });
+  }
+
   try {
+    // Haal streamer op om shop_id te krijgen
+    const { data: streamer } = await supabaseAdmin
+      .from("streamers")
+      .select("shop_id")
+      .eq("id", streamerId)
+      .single();
+
+    if (!streamer) {
+      return res.status(404).json({ error: "Streamer not found" });
+    }
+
+    // Verificeer dat de end order bestaat en van de juiste shop is
+    const { data: endOrder } = await supabaseAdmin
+      .from("queue_entries")
+      .select("*")
+      .eq("id", endOrderId)
+      .eq("shop_id", streamer.shop_id)
+      .single();
+
+    if (!endOrder) {
+      return res.status(400).json({ error: "End order niet gevonden of verkeerde shop" });
+    }
+
     const { data, error } = await supabaseAdmin
       .from("streamers")
       .update({
         is_active: false,
         checked_out_at: new Date().toISOString(),
+        end_order_id: endOrderId,
       })
       .eq("id", streamerId)
       .select()
