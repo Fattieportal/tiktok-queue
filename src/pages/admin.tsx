@@ -45,6 +45,9 @@ export default function Admin() {
   const [editShowMoreBg, setEditShowMoreBg] = useState<boolean>(true);
   const [editLanguage, setEditLanguage] = useState<string>("nl");
 
+  // Streamer check-in
+  const [streamerName, setStreamerName] = useState<string>("");
+  const [activeStreamer, setActiveStreamer] = useState<{ id: string; name: string; is_active: boolean } | null>(null);
 
   // Check localStorage voor opgeslagen admin key bij mount
   useEffect(() => {
@@ -191,6 +194,95 @@ export default function Admin() {
     setSelectedShop(null);
     setShops([]);
     localStorage.removeItem("adminKey");
+  };
+
+  // Haal actieve streamer op
+  const fetchActiveStreamer = useCallback(async () => {
+    if (!selectedShop || !isAuthenticated) return;
+    
+    try {
+      const r = await fetch(`/api/streamers/active?shopId=${selectedShop.id}`);
+      if (r.ok) {
+        const data = await r.json();
+        setActiveStreamer(data.activeStreamer);
+      }
+    } catch (err) {
+      console.error("Error fetching active streamer:", err);
+    }
+  }, [selectedShop, isAuthenticated]);
+
+  // Refresh actieve streamer elke 10 seconden
+  useEffect(() => {
+    if (!selectedShop || !isAuthenticated) return;
+    
+    fetchActiveStreamer();
+    const interval = setInterval(fetchActiveStreamer, 10000);
+    return () => clearInterval(interval);
+  }, [selectedShop, isAuthenticated, fetchActiveStreamer]);
+
+  const handleStreamerCheckIn = async () => {
+    if (!streamerName.trim() || !selectedShop) {
+      alert("Voer een streamer naam in!");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/streamers/check-in?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          streamerName: streamerName.trim(),
+          shopId: selectedShop.id,
+        }),
+      });
+
+      if (r.ok) {
+        const data = await r.json();
+        alert(data.message);
+        setStreamerName("");
+        await fetchActiveStreamer();
+      } else {
+        const err = await r.json();
+        alert(`Fout: ${err.error || "Onbekende fout"}`);
+      }
+    } catch {
+      alert("Fout bij inchecken streamer");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStreamerCheckOut = async () => {
+    if (!activeStreamer || !selectedShop) return;
+
+    if (!confirm(`Weet je zeker dat je ${activeStreamer.name} wilt uitchecken?`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          streamerId: activeStreamer.id,
+        }),
+      });
+
+      if (r.ok) {
+        const data = await r.json();
+        alert(data.message);
+        await fetchActiveStreamer();
+      } else {
+        const err = await r.json();
+        alert(`Fout: ${err.error || "Onbekende fout"}`);
+      }
+    } catch {
+      alert("Fout bij uitchecken streamer");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateShop = async () => {
@@ -973,6 +1065,73 @@ export default function Admin() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-400 mt-2">Zichtbaar via /api/like-goal?store=&lt;shopId&gt;</p>
+                </div>
+
+                {/* Streamer Check-in */}
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold text-slate-200">🎙️ Actieve Streamer</label>
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Bekijk gedetailleerde streamer statistieken?")) {
+                          window.open("/streamer-stats", "_blank");
+                        }
+                      }}
+                      className="px-3 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-lg hover:bg-purple-500/30 transition-all"
+                    >
+                      📊 Statistieken
+                    </button>
+                  </div>
+                  
+                  {activeStreamer && activeStreamer.is_active ? (
+                    <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-3 mb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-green-200 font-semibold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                            {activeStreamer.name}
+                          </div>
+                          <div className="text-xs text-green-300/70 mt-1">🟢 Momenteel live</div>
+                        </div>
+                        <button
+                          onClick={handleStreamerCheckOut}
+                          disabled={isLoading}
+                          className="px-4 py-2 bg-red-500/30 text-red-200 rounded-lg hover:bg-red-500/50 transition-all text-sm font-medium disabled:opacity-50"
+                        >
+                          Check-out
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-400 mb-3 bg-slate-700/30 rounded-lg p-2 text-center">
+                      Geen actieve streamer — orders worden niet toegeschreven
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={streamerName}
+                      onChange={(e) => setStreamerName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && streamerName.trim()) {
+                          handleStreamerCheckIn();
+                        }
+                      }}
+                      placeholder="Streamer naam..."
+                      className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <button
+                      onClick={handleStreamerCheckIn}
+                      disabled={isLoading || !streamerName.trim()}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:scale-105 transition-all disabled:opacity-50 font-medium whitespace-nowrap"
+                    >
+                      Check-in
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    💡 Check-in streamer voordat de live begint. Alle nieuwe orders worden automatisch toegeschreven.
+                  </p>
                 </div>
               </div>
             </div>

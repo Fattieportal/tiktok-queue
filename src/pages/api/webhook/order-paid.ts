@@ -238,6 +238,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const productInfo = formatProductInfo(order.line_items);
 
+  // Haal actieve streamer op voor deze shop
+  const { data: activeStreamer } = await supabaseAdmin
+    .from("streamers")
+    .select("id")
+    .eq("shop_id", shop.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
   const { error: insertErr } = await supabaseAdmin.from("queue_entries").insert({
     shopify_order_id: shopifyOrderId,
     order_number: orderNumber,
@@ -245,6 +253,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     product_info: productInfo,
     status: "waiting",
     shop_id: shop.id,
+    streamer_id: activeStreamer?.id || null,
   });
 
   // Treat unique/duplicate as ok (Shopify can retry)
