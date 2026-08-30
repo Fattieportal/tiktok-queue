@@ -135,8 +135,8 @@ export default function StreamerStats() {
 
     setIsLoading(true);
     try {
-      // Maak streamer aan via check-in API (maar check direct weer uit)
-      const r = await fetch(`/api/streamers/check-in?key=${encodeURIComponent(adminKey)}`, {
+      // Maak streamer aan via create API (niet actief)
+      const r = await fetch(`/api/streamers/create?key=${encodeURIComponent(adminKey)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -147,15 +147,7 @@ export default function StreamerStats() {
 
       if (r.ok) {
         const data = await r.json();
-        
-        // Check direct weer uit zodat ze in de lijst staan maar niet actief zijn
-        await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ streamerId: data.streamer.id }),
-        });
-
-        alert(`Streamer "${newStreamerName.trim()}" toegevoegd!`);
+        alert(data.message);
         setNewStreamerName("");
         setShowAddStreamer(false);
         
