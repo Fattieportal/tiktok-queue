@@ -47,6 +47,7 @@ export default function Admin() {
 
   // Streamer check-in
   const [streamerName, setStreamerName] = useState<string>("");
+  const [availableStreamers, setAvailableStreamers] = useState<{ id: string; name: string }[]>([]);
   const [activeStreamer, setActiveStreamer] = useState<{ id: string; name: string; is_active: boolean } | null>(null);
 
   // Check localStorage voor opgeslagen admin key bij mount
@@ -211,14 +212,34 @@ export default function Admin() {
     }
   }, [selectedShop, isAuthenticated]);
 
+  // Haal beschikbare streamers op voor dropdown
+  const fetchAvailableStreamers = useCallback(async () => {
+    if (!selectedShop || !isAuthenticated || !adminKey) return;
+    
+    try {
+      const r = await fetch(`/api/streamers/list?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`);
+      if (r.ok) {
+        const data = await r.json();
+        // Haal alle unieke streamer namen op
+        const uniqueStreamers = data.streamers
+          .map((s: { id: string; name: string }) => ({ id: s.id, name: s.name }))
+          .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name));
+        setAvailableStreamers(uniqueStreamers);
+      }
+    } catch (err) {
+      console.error("Error fetching available streamers:", err);
+    }
+  }, [selectedShop, isAuthenticated, adminKey]);
+
   // Refresh actieve streamer elke 10 seconden
   useEffect(() => {
     if (!selectedShop || !isAuthenticated) return;
     
     fetchActiveStreamer();
+    fetchAvailableStreamers();
     const interval = setInterval(fetchActiveStreamer, 10000);
     return () => clearInterval(interval);
-  }, [selectedShop, isAuthenticated, fetchActiveStreamer]);
+  }, [selectedShop, isAuthenticated, fetchActiveStreamer, fetchAvailableStreamers]);
 
   const handleStreamerCheckIn = async () => {
     if (!streamerName.trim() || !selectedShop) {
@@ -242,6 +263,7 @@ export default function Admin() {
         alert(data.message);
         setStreamerName("");
         await fetchActiveStreamer();
+        await fetchAvailableStreamers(); // Refresh lijst voor het geval het een nieuwe streamer was
       } else {
         const err = await r.json();
         alert(`Fout: ${err.error || "Onbekende fout"}`);
@@ -1108,29 +1130,60 @@ export default function Admin() {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={streamerName}
-                      onChange={(e) => setStreamerName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && streamerName.trim()) {
-                          handleStreamerCheckIn();
-                        }
-                      }}
-                      placeholder="Streamer naam..."
-                      className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <button
-                      onClick={handleStreamerCheckIn}
-                      disabled={isLoading || !streamerName.trim()}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:scale-105 transition-all disabled:opacity-50 font-medium whitespace-nowrap"
-                    >
-                      Check-in
-                    </button>
+                  <div className="flex flex-col gap-2">
+                    {availableStreamers.length > 0 && (
+                      <div>
+                        <label className="block text-xs text-slate-300 mb-1">Selecteer bestaande streamer:</label>
+                        <select
+                          value={streamerName}
+                          onChange={(e) => setStreamerName(e.target.value)}
+                          className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:bg-white/15 transition-all"
+                          style={{
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 0.75rem center',
+                            backgroundSize: '1.5rem',
+                            paddingRight: '2.5rem'
+                          }}
+                        >
+                          <option value="" className="bg-slate-900">-- Kies een streamer --</option>
+                          {availableStreamers.map((s) => (
+                            <option key={s.id} value={s.name} className="bg-slate-900">
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-2">
+                      {availableStreamers.length > 0 && (
+                        <div className="flex-shrink-0 text-xs text-slate-400">of typ nieuwe:</div>
+                      )}
+                      <input
+                        type="text"
+                        value={streamerName}
+                        onChange={(e) => setStreamerName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && streamerName.trim()) {
+                            handleStreamerCheckIn();
+                          }
+                        }}
+                        placeholder={availableStreamers.length > 0 ? "Nieuwe streamer..." : "Streamer naam..."}
+                        className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <button
+                        onClick={handleStreamerCheckIn}
+                        disabled={isLoading || !streamerName.trim()}
+                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:scale-105 transition-all disabled:opacity-50 font-medium whitespace-nowrap"
+                      >
+                        Check-in
+                      </button>
+                    </div>
                   </div>
                   <p className="text-xs text-slate-400 mt-2">
                     💡 Check-in streamer voordat de live begint. Alle nieuwe orders worden automatisch toegeschreven.
+                    {availableStreamers.length === 0 && " Voeg streamers toe via de statistieken pagina."}
                   </p>
                 </div>
               </div>

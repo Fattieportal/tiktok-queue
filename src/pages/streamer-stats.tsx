@@ -43,6 +43,8 @@ export default function StreamerStats() {
   const [streamers, setStreamers] = useState<StreamerStat[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedStreamer, setExpandedStreamer] = useState<string | null>(null);
+  const [showAddStreamer, setShowAddStreamer] = useState(false);
+  const [newStreamerName, setNewStreamerName] = useState("");
 
   // Check of admin key geldig is
   const handleLogin = async (e: React.FormEvent) => {
@@ -120,6 +122,57 @@ export default function StreamerStats() {
       }
     } catch {
       alert("Fout bij uitchecken streamer");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddStreamer = async () => {
+    if (!newStreamerName.trim() || !selectedShop) {
+      alert("Voer een streamer naam in!");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Maak streamer aan via check-in API (maar check direct weer uit)
+      const r = await fetch(`/api/streamers/check-in?key=${encodeURIComponent(adminKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          streamerName: newStreamerName.trim(),
+          shopId: selectedShop.id,
+        }),
+      });
+
+      if (r.ok) {
+        const data = await r.json();
+        
+        // Check direct weer uit zodat ze in de lijst staan maar niet actief zijn
+        await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ streamerId: data.streamer.id }),
+        });
+
+        alert(`Streamer "${newStreamerName.trim()}" toegevoegd!`);
+        setNewStreamerName("");
+        setShowAddStreamer(false);
+        
+        // Refresh data
+        const statsR = await fetch(
+          `/api/streamers/list?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`
+        );
+        if (statsR.ok) {
+          const statsData = await statsR.json();
+          setStreamers(statsData.streamers || []);
+        }
+      } else {
+        const err = await r.json();
+        alert(`Fout: ${err.error || "Onbekende fout"}`);
+      }
+    } catch {
+      alert("Fout bij toevoegen streamer");
     } finally {
       setIsLoading(false);
     }
@@ -339,6 +392,120 @@ export default function StreamerStats() {
               {totalOrders}
             </div>
           </div>
+        </div>
+
+        {/* Add Streamer Section */}
+        <div
+          style={{
+            background: "white",
+            borderRadius: "16px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            padding: "20px",
+            marginBottom: "20px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+              👥 Streamer Beheer
+            </h3>
+            {!showAddStreamer && (
+              <button
+                onClick={() => setShowAddStreamer(true)}
+                style={{
+                  padding: "8px 16px",
+                  background: "#667eea",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                }}
+              >
+                + Nieuwe Streamer
+              </button>
+            )}
+          </div>
+
+          {showAddStreamer ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ 
+                padding: "16px", 
+                background: "#f8f9fa", 
+                borderRadius: "8px",
+                border: "2px dashed #667eea"
+              }}>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "14px" }}>
+                  Streamer Naam:
+                </label>
+                <input
+                  type="text"
+                  value={newStreamerName}
+                  onChange={(e) => setNewStreamerName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newStreamerName.trim()) {
+                      handleAddStreamer();
+                    }
+                  }}
+                  placeholder="Bijv: Emma, Lars, Sophie..."
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #e0e0e0",
+                    fontSize: "14px",
+                  }}
+                  autoFocus
+                />
+                <p style={{ margin: "8px 0 0 0", fontSize: "12px", color: "#666" }}>
+                  💡 Deze naam verschijnt in de dropdown lijst in het admin panel
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => {
+                    setShowAddStreamer(false);
+                    setNewStreamerName("");
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "10px",
+                    background: "#e5e7eb",
+                    color: "#374151",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                  }}
+                >
+                  Annuleren
+                </button>
+                <button
+                  onClick={handleAddStreamer}
+                  disabled={isLoading || !newStreamerName.trim()}
+                  style={{
+                    flex: 1,
+                    padding: "10px",
+                    background: "#667eea",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: isLoading || !newStreamerName.trim() ? "not-allowed" : "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    opacity: isLoading || !newStreamerName.trim() ? 0.5 : 1,
+                  }}
+                >
+                  {isLoading ? "Toevoegen..." : "✓ Toevoegen"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: "14px", color: "#666" }}>
+              Voeg streamers toe zodat ze eenvoudig kunnen inchecken via een dropdown lijst in het admin panel.
+            </p>
+          )}
         </div>
 
         {/* Streamers Table */}

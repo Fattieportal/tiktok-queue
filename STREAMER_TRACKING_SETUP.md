@@ -52,13 +52,34 @@ Vercel zal automatisch deployen.
 
 ## 🎮 Gebruik
 
+### **Voor Eigenaren: Streamers Toevoegen**
+
+**Voeg streamers toe via de statistieken pagina** (aanbevolen):
+
+1. Log in op **`/streamer-stats`**
+2. Selecteer de juiste webshop
+3. Klik op **"+ Nieuwe Streamer"**
+4. Voer de naam in (bijv: "Emma", "Lars", "Sophie")
+5. Klik **"✓ Toevoegen"**
+6. ✅ De streamer staat nu in de lijst voor die webshop!
+
+**Waarom via statistieken pagina?**
+- Extra beveiliging (admin key vereist)
+- Overzichtelijk beheer
+- Streamers verschijnen daarna in dropdown lijst in admin panel
+
 ### **Voor Admins: Streamer Inchecken**
 
 1. Log in op **`/admin`**
 2. Selecteer de juiste webshop
 3. Scroll naar "🎙️ Actieve Streamer" sectie
-4. Voer de naam van de streamer in (bijv: "Emma", "Lars", "Sophie")
-5. Klik **"Check-in"**
+4. **Optie A - Selecteer uit lijst**:
+   - Kies een bestaande streamer uit de dropdown
+   - Klik **"Check-in"**
+5. **Optie B - Typ nieuwe naam**:
+   - Typ een nieuwe streamer naam
+   - Klik **"Check-in"**
+   - De streamer wordt automatisch toegevoegd
 6. ✅ De streamer is nu actief!
 
 **Alle nieuwe orders die nu binnenkomen worden automatisch aan deze streamer toegeschreven.**
