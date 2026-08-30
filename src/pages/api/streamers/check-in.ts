@@ -95,6 +95,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       streamer = data;
     }
 
+    // BACKFILL: Wijs alle orders vanaf start order toe aan deze streamer
+    // Dit zorgt ervoor dat orders die binnenkwamen vóór check-in maar ná de start-order
+    // alsnog worden toegewezen aan de streamer
+    const { data: startOrderData } = await supabaseAdmin
+      .from("queue_entries")
+      .select("created_at")
+      .eq("id", startOrderId)
+      .single();
+
+    if (startOrderData) {
+      await supabaseAdmin
+        .from("queue_entries")
+        .update({ streamer_id: streamer.id })
+        .eq("shop_id", shopId)
+        .gte("created_at", startOrderData.created_at)
+        .is("streamer_id", null); // Alleen orders zonder streamer
+    }
+
     return res.status(200).json({ 
       success: true, 
       streamer,
