@@ -1,7 +1,8 @@
 -- REFRESH: Vernieuw alle streamer data en statistieken
 
--- 1. Vernieuw de streamer_stats view (force refresh)
-REFRESH MATERIALIZED VIEW IF EXISTS streamer_stats;
+-- 1. Geen refresh nodig voor views (ze zijn altijd live)
+-- streamer_stats is een normale VIEW, geen MATERIALIZED VIEW
+-- Dit betekent dat de data altijd automatisch up-to-date is
 
 -- 2. Controleer alle orders en hun prijzen
 SELECT 

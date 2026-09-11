@@ -40,7 +40,7 @@ type Shop = {
 
 export default function StreamerStats() {
   const router = useRouter();
-  const [adminKey, setAdminKey] = useState("");
+  const [streamerKey, setStreamerKey] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [shops, setShops] = useState<Shop[]>([]);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
@@ -56,7 +56,7 @@ export default function StreamerStats() {
     setIsLoading(true);
 
     try {
-      const r = await fetch(`/api/shops/list?key=${encodeURIComponent(adminKey)}`);
+      const r = await fetch(`/api/shops/list?key=${encodeURIComponent(streamerKey)}`);
       if (r.ok) {
         const data = await r.json();
         setShops(data.shops || []);
@@ -65,7 +65,7 @@ export default function StreamerStats() {
           setSelectedShop(data.shops[0]);
         }
       } else {
-        alert("Ongeldige admin key!");
+        alert("Ongeldige streamer key!");
       }
     } catch {
       alert("Fout bij inloggen");
@@ -81,7 +81,7 @@ export default function StreamerStats() {
     const fetchStats = async () => {
       try {
         const r = await fetch(
-          `/api/streamers/list?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`
+          `/api/streamers/list?key=${encodeURIComponent(streamerKey)}&shopId=${selectedShop.id}`
         );
         if (r.ok) {
           const data = await r.json();
@@ -95,7 +95,7 @@ export default function StreamerStats() {
     fetchStats();
     const interval = setInterval(fetchStats, 10000); // Update elke 10 sec
     return () => clearInterval(interval);
-  }, [isAuthenticated, selectedShop, adminKey]);
+  }, [isAuthenticated, selectedShop, streamerKey]);
 
   const handleCheckOut = async (streamerId: string, streamerName: string) => {
     if (!confirm(`Weet je zeker dat je ${streamerName} wilt uitchecken?`)) {
@@ -104,7 +104,7 @@ export default function StreamerStats() {
 
     setIsLoading(true);
     try {
-      const r = await fetch(`/api/streamers/check-out?key=${encodeURIComponent(adminKey)}`, {
+      const r = await fetch(`/api/streamers/check-out?key=${encodeURIComponent(streamerKey)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ streamerId }),
@@ -114,7 +114,7 @@ export default function StreamerStats() {
         alert(`${streamerName} is uitgecheckt!`);
         // Refresh data
         const statsR = await fetch(
-          `/api/streamers/list?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop?.id}`
+          `/api/streamers/list?key=${encodeURIComponent(streamerKey)}&shopId=${selectedShop?.id}`
         );
         if (statsR.ok) {
           const data = await statsR.json();
@@ -140,7 +140,7 @@ export default function StreamerStats() {
     setIsLoading(true);
     try {
       // Maak streamer aan via create API (niet actief)
-      const r = await fetch(`/api/streamers/create?key=${encodeURIComponent(adminKey)}`, {
+      const r = await fetch(`/api/streamers/create?key=${encodeURIComponent(streamerKey)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -157,7 +157,7 @@ export default function StreamerStats() {
         
         // Refresh data
         const statsR = await fetch(
-          `/api/streamers/list?key=${encodeURIComponent(adminKey)}&shopId=${selectedShop.id}`
+          `/api/streamers/list?key=${encodeURIComponent(streamerKey)}&shopId=${selectedShop.id}`
         );
         if (statsR.ok) {
           const statsData = await statsR.json();
@@ -198,14 +198,14 @@ export default function StreamerStats() {
         >
           <h1 style={{ marginBottom: "10px", color: "#1a1a1a" }}>🎯 Streamer Statistieken</h1>
           <p style={{ color: "#666", marginBottom: "30px", fontSize: "14px" }}>
-            Alleen toegankelijk met admin key
+            Alleen toegankelijk met streamer key
           </p>
           <form onSubmit={handleLogin}>
             <input
               type="password"
-              placeholder="Admin Key"
-              value={adminKey}
-              onChange={(e) => setAdminKey(e.target.value)}
+              placeholder="Streamer Key"
+              value={streamerKey}
+              onChange={(e) => setStreamerKey(e.target.value)}
               style={{
                 width: "100%",
                 padding: "12px",
