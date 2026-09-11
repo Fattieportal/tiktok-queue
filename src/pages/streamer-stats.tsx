@@ -56,7 +56,7 @@ export default function StreamerStats() {
     setIsLoading(true);
 
     try {
-      const r = await fetch(`/api/shops/list?key=${encodeURIComponent(streamerKey)}`);
+      const r = await fetch(`/api/streamers/shops?key=${encodeURIComponent(streamerKey)}`);
       if (r.ok) {
         const data = await r.json();
         setShops(data.shops || []);
