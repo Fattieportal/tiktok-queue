@@ -95,8 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .eq("shop_id", streamer.shop_id)
             .gte("created_at", startOrderData.created_at)
             .lte("created_at", endOrderData.created_at);
-          
-          console.log(`[STREAMER-CHECKOUT] Backfill: assigned all orders between ${startOrderData.created_at} and ${endOrderData.created_at} to streamer ${streamerId}`);
+
         }
       }
     }

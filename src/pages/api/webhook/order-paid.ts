@@ -98,9 +98,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Get shop domain from Shopify header
   const shopDomain = (req.headers["x-shopify-shop-domain"] as string | undefined) ?? null;
   
-  console.log("[WEBHOOK] Received webhook from domain:", shopDomain);
-  console.log("[WEBHOOK] All headers:", JSON.stringify(req.headers, null, 2));
-  
   if (!shopDomain) {
     return res.status(400).json({ ok: false, error: "Missing x-shopify-shop-domain header" });
   }
@@ -116,9 +113,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Als geen match, probeer dan shops met NULL shopify_shop_domain
   // En match op basis van de environment variable naam
   if (shopError || !shop) {
-    console.log("[WEBHOOK] No shop found with domain:", shopDomain);
-    console.log("[WEBHOOK] Checking shops with empty domain...");
-    
     const { data: allShops } = await supabaseAdmin
       .from("shops")
       .select("id, name, shopify_shop_domain")
@@ -131,8 +125,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const secretKey = `SHOPIFY_SECRET_${potentialShop.name.toUpperCase()}`;
         if (process.env[secretKey]) {
           // Match gevonden! Update de shop met de domain
-          console.log(`[WEBHOOK] Auto-filling domain for shop ${potentialShop.name}: ${shopDomain}`);
-          
           const { data: updatedShop } = await supabaseAdmin
             .from("shops")
             .update({ shopify_shop_domain: shopDomain })
@@ -151,7 +143,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (shopError || !shop) {
-    console.log("[WEBHOOK] Shop lookup failed. Domain:", shopDomain);
     return res.status(404).json({ 
       ok: false, 
       error: "Shop not found. Please create a shop with matching SHOPIFY_SECRET_<NAME> in environment variables.",
@@ -183,23 +174,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, error: "Invalid JSON" });
   }
 
-  // Log order details voor debugging
-  console.log("[WEBHOOK] Order details:", {
-    orderId: order.id,
-    orderNumber: order.order_number,
-    name: order.name,
-    sourceIdentifier: order.source_identifier,
-    sourceName: order.source_name,
-    tags: order.tags
-  });
-
   const shippingTitles: string[] = (order.shipping_lines ?? [])
     .map((x) => (x?.title ?? "").trim())
     .filter(Boolean);
-
-  console.log("[WEBHOOK] Shipping titles:", shippingTitles);
-  console.log("[WEBHOOK] Shipping titles length:", shippingTitles.length);
-  console.log("[WEBHOOK] Raw shipping_lines:", JSON.stringify(order.shipping_lines));
 
   const isTikTokUnboxing = shippingTitles.some((t) => t.toLowerCase().includes("tiktok live unboxing"));
   const isShippedBySeller = shippingTitles.some((t) => t.toLowerCase().includes("shipped by seller"));
@@ -208,21 +185,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // If no shipping titles at all, accept the order (probably TikTok Shop)
   const hasNoShippingInfo = shippingTitles.length === 0;
 
-  console.log("[WEBHOOK] Checks:", { 
-    isTikTokUnboxing, 
-    isShippedBySeller, 
-    isMysteryExcluded,
-    hasNoShippingInfo,
-    shouldAccept: (isTikTokUnboxing || isShippedBySeller || hasNoShippingInfo) && !isMysteryExcluded
-  });
-
   // Accept if: (has valid shipping method OR no shipping info) AND not mystery box
   if ((!isTikTokUnboxing && !isShippedBySeller && !hasNoShippingInfo) || isMysteryExcluded) {
-    console.log("[WEBHOOK] Order ignored - shipping method check failed or mystery box exclusion");
     return res.status(200).json({ ok: true, status: "ignored", shippingTitles, hasNoShippingInfo });
   }
-
-  console.log("[WEBHOOK] Order ACCEPTED - proceeding to add to queue");
 
   const shopifyOrderId = order.id;
   if (!shopifyOrderId) {
