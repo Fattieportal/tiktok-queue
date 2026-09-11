@@ -3,7 +3,7 @@ import { supabase } from "@/lib/db";
 
 function isAuthorized(req: NextApiRequest): boolean {
   const key = req.query.key || req.headers.authorization?.replace("Bearer ", "");
-  return key === process.env.ADMIN_KEY;
+  return key === process.env.STREAMER_KEY;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

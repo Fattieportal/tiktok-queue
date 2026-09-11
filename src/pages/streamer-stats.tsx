@@ -50,7 +50,7 @@ export default function StreamerStats() {
   const [showAddStreamer, setShowAddStreamer] = useState(false);
   const [newStreamerName, setNewStreamerName] = useState("");
 
-  // Check of admin key geldig is
+  // Check of streamer key geldig is
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
