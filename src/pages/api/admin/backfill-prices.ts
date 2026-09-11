@@ -12,6 +12,14 @@ interface ShopifyOrder {
   currency: string;
 }
 
+interface ShopifyOrdersResponse {
+  orders: ShopifyOrder[];
+}
+
+export const config = {
+  maxDuration: 300, // 5 minute timeout for backfill
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -21,59 +29,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  try {
-    // Fetch all shops with their Shopify credentials
-    const { data: shops, error: shopsError } = await supabaseAdmin
-      .from("shops")
-      .select("id, name, shopify_shop_domain");
+  // Start backfill in background - don't wait for completion
+  setImmediate(async () => {
+    try {
+      // Fetch all shops with their Shopify credentials
+      const { data: shops, error: shopsError } = await supabaseAdmin
+        .from("shops")
+        .select("id, name, shopify_shop_domain");
 
-    if (shopsError || !shops) {
-      return res.status(500).json({ error: "Failed to fetch shops" });
-    }
-
-    let totalUpdated = 0;
-    const results = [];
-
-    // For each shop, fetch orders missing prices
-    for (const shop of shops) {
-      if (!shop.shopify_shop_domain) {
-        results.push({ shop: shop.name, status: "skipped", reason: "no_domain" });
-        continue;
+      if (shopsError || !shops) {
+        console.error("[BACKFILL] Failed to fetch shops:", shopsError);
+        return;
       }
 
-      // Get all orders in this shop without prices
-      const { data: ordersWithoutPrices, error: ordersError } = await supabaseAdmin
-        .from("queue_entries")
-        .select("id, shopify_order_id, order_number")
-        .eq("shop_id", shop.id)
-        .is("total_price", null);
+      let totalUpdated = 0;
 
-      if (ordersError) {
-        results.push({ shop: shop.name, status: "error", error: ordersError });
-        continue;
-      }
+      // For each shop, fetch orders missing prices
+      for (const shop of shops) {
+        if (!shop.shopify_shop_domain) {
+          console.log(`[BACKFILL] Shop ${shop.name} has no domain, skipping`);
+          continue;
+        }
 
-      if (!ordersWithoutPrices || ordersWithoutPrices.length === 0) {
-        results.push({ shop: shop.name, status: "no_orders_to_update", count: 0 });
-        continue;
-      }
+        const secretKey = `SHOPIFY_SECRET_${shop.name.toUpperCase()}`;
+        const secret = process.env[secretKey];
 
-      let shopUpdated = 0;
+        if (!secret) {
+          console.log(`[BACKFILL] No secret for shop ${shop.name}`);
+          continue;
+        }
 
-      // For each order, fetch from Shopify and update
-      for (const order of ordersWithoutPrices) {
-        if (!order.shopify_order_id) continue;
+        // Get all orders in this shop without prices
+        const { data: ordersWithoutPrices, error: ordersError } = await supabaseAdmin
+          .from("queue_entries")
+          .select("id, shopify_order_id, order_number")
+          .eq("shop_id", shop.id)
+          .is("total_price", null)
+          .limit(250);
+
+        if (ordersError) {
+          console.error(`[BACKFILL] Error fetching orders for shop ${shop.name}:`, ordersError);
+          continue;
+        }
+
+        if (!ordersWithoutPrices || ordersWithoutPrices.length === 0) {
+          console.log(`[BACKFILL] Shop ${shop.name}: no orders to update`);
+          continue;
+        }
+
+        console.log(`[BACKFILL] Shop ${shop.name}: processing ${ordersWithoutPrices.length} orders`);
+
+        // Build list of shopify order IDs
+        const shopifyIds = ordersWithoutPrices
+          .map((o) => o.shopify_order_id)
+          .filter(Boolean);
+
+        if (shopifyIds.length === 0) continue;
 
         try {
-          // Fetch order from Shopify
-          const shopifyUrl = `https://${shop.shopify_shop_domain}/admin/api/2024-01/orders/${order.shopify_order_id}.json`;
-          const secretKey = `SHOPIFY_SECRET_${shop.name.toUpperCase()}`;
-          const secret = process.env[secretKey];
-
-          if (!secret) {
-            console.log(`[BACKFILL] No secret for shop ${shop.name}`);
-            continue;
-          }
+          // Fetch all orders from Shopify in one call (more efficient)
+          const ids = shopifyIds.join(" OR ");
+          const shopifyUrl = `https://${shop.shopify_shop_domain}/admin/api/2024-01/orders.json?status=any&fields=id,total_price,currency&query=${encodeURIComponent(ids)}`;
 
           const shopifyRes = await fetch(shopifyUrl, {
             headers: {
@@ -82,55 +98,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           if (!shopifyRes.ok) {
-            console.log(`[BACKFILL] Failed to fetch order ${order.shopify_order_id} from Shopify`);
+            console.log(`[BACKFILL] Failed to fetch orders from Shopify for shop ${shop.name}`);
             continue;
           }
 
-          const shopifyData = (await shopifyRes.json()) as { order: ShopifyOrder };
-          const shopifyOrder = shopifyData.order;
+          const shopifyData = (await shopifyRes.json()) as ShopifyOrdersResponse;
+          const shopifyOrders = shopifyData.orders || [];
 
-          if (!shopifyOrder || !shopifyOrder.total_price) {
-            continue;
+          // Create a map of shopify_order_id -> order data
+          const priceMap = new Map(
+            shopifyOrders.map((o) => [
+              String(o.id),
+              {
+                price: parseFloat(o.total_price),
+                currency: (o.currency || "EUR").toUpperCase(),
+              },
+            ])
+          );
+
+          console.log(`[BACKFILL] Got ${shopifyOrders.length} orders from Shopify`);
+
+          // Update all orders with their prices
+          for (const order of ordersWithoutPrices) {
+            if (!order.shopify_order_id) continue;
+
+            const priceData = priceMap.get(String(order.shopify_order_id));
+            if (!priceData) {
+              console.log(`[BACKFILL] No price data for order ${order.shopify_order_id}`);
+              continue;
+            }
+
+            const { error: updateError } = await supabaseAdmin
+              .from("queue_entries")
+              .update({
+                total_price: priceData.price,
+                currency: priceData.currency,
+              })
+              .eq("id", order.id);
+
+            if (updateError) {
+              console.error(`[BACKFILL] Error updating order ${order.id}:`, updateError);
+            } else {
+              totalUpdated++;
+            }
           }
 
-          const totalPrice = parseFloat(shopifyOrder.total_price);
-          const currency = (shopifyOrder.currency || "EUR").toUpperCase();
-
-          // Update the order in our database
-          const { error: updateError } = await supabaseAdmin
-            .from("queue_entries")
-            .update({
-              total_price: totalPrice,
-              currency: currency,
-            })
-            .eq("id", order.id);
-
-          if (updateError) {
-            console.error(`[BACKFILL] Error updating order ${order.id}:`, updateError);
-            continue;
-          }
-
-          shopUpdated++;
-          totalUpdated++;
-
-          // Add small delay to avoid rate limiting
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          console.log(`[BACKFILL] Shop ${shop.name}: updated ${totalUpdated} orders so far`);
         } catch (error) {
-          console.error(`[BACKFILL] Error processing order ${order.id}:`, error);
+          console.error(`[BACKFILL] Error fetching orders from Shopify for shop ${shop.name}:`, error);
           continue;
         }
       }
 
-      results.push({ shop: shop.name, status: "success", updated: shopUpdated });
+      console.log(`[BACKFILL] Complete! Total orders updated: ${totalUpdated}`);
+    } catch (error) {
+      console.error("[BACKFILL] Critical error:", error);
     }
+  });
 
-    return res.status(200).json({
-      ok: true,
-      message: `Backfill complete. Total orders updated: ${totalUpdated}`,
-      results,
-    });
-  } catch (error) {
-    console.error("[BACKFILL] Error:", error);
-    return res.status(500).json({ error: "Backfill failed", details: error });
-  }
+  // Return immediately
+  return res.status(202).json({
+    ok: true,
+    message: "Backfill started in background. Check console logs for progress.",
+    note: "This will process all shops and their orders with Shopify API queries.",
+  });
 }
