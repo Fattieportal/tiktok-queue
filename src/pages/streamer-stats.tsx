@@ -8,6 +8,8 @@ type OrderDetail = {
   product_info: string | null;
   status: string;
   created_at: string;
+  total_price: number;
+  currency: string;
 };
 
 type StreamerStat = {
@@ -25,6 +27,8 @@ type StreamerStat = {
   checked_in_at: string | null;
   checked_out_at: string | null;
   is_active: boolean;
+  total_revenue: number;
+  average_order_value: number;
   order_details?: OrderDetail[];
 };
 
@@ -249,6 +253,7 @@ export default function StreamerStats() {
   };
 
   const totalOrders = streamers.reduce((sum, s) => sum + s.total_orders, 0);
+  const totalRevenue = streamers.reduce((sum, s) => sum + (s.total_revenue || 0), 0);
 
   return (
     <div
@@ -533,6 +538,12 @@ export default function StreamerStats() {
                   <th style={{ padding: "16px", textAlign: "right", fontWeight: "600" }}>
                     Wachtend
                   </th>
+                  <th style={{ padding: "16px", textAlign: "right", fontWeight: "600" }}>
+                    💰 Revenue
+                  </th>
+                  <th style={{ padding: "16px", textAlign: "right", fontWeight: "600" }}>
+                    📊 Gem. Waarde
+                  </th>
                   <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>
                     Ingecheckt
                   </th>
@@ -545,7 +556,7 @@ export default function StreamerStats() {
               <tbody>
                 {streamers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#666" }}>
+                    <td colSpan={11} style={{ padding: "40px", textAlign: "center", color: "#666" }}>
                       Nog geen streamers ingecheckt voor deze shop
                     </td>
                   </tr>
@@ -614,6 +625,12 @@ export default function StreamerStats() {
                         <td style={{ padding: "16px", textAlign: "right", color: "#f59e0b" }}>
                           {streamer.waiting_orders}
                         </td>
+                        <td style={{ padding: "16px", textAlign: "right", fontSize: "16px", fontWeight: "bold", color: "#059669" }}>
+                          €{(streamer.total_revenue || 0).toFixed(2)}
+                        </td>
+                        <td style={{ padding: "16px", textAlign: "right", fontSize: "14px", color: "#6b7280" }}>
+                          €{(streamer.average_order_value || 0).toFixed(2)}
+                        </td>
                         <td style={{ padding: "16px", fontSize: "14px" }}>
                           {formatDate(streamer.checked_in_at)}
                         </td>
@@ -646,10 +663,10 @@ export default function StreamerStats() {
                       {/* Expandable row met order details */}
                       {expandedStreamer === streamer.id && streamer.order_details && streamer.order_details.length > 0 && (
                         <tr key={`${streamer.id}-details`}>
-                          <td colSpan={9} style={{ padding: 0, background: "#f8f9fa" }}>
+                          <td colSpan={11} style={{ padding: 0, background: "#f8f9fa" }}>
                             <div style={{ padding: "16px 32px" }}>
                               <h4 style={{ margin: "0 0 12px 0", color: "#374151", fontSize: "14px", fontWeight: "600" }}>
-                                📦 Orders van {streamer.name} ({streamer.order_details.length})
+                                📦 Orders van {streamer.name} ({streamer.order_details.length}) • Totaal: €{(streamer.total_revenue || 0).toFixed(2)}
                               </h4>
                               <div style={{ maxHeight: "400px", overflowY: "auto" }}>
                                 <table style={{ width: "100%", fontSize: "13px" }}>
@@ -658,6 +675,7 @@ export default function StreamerStats() {
                                       <th style={{ padding: "8px", textAlign: "left" }}>Order #</th>
                                       <th style={{ padding: "8px", textAlign: "left" }}>Klant</th>
                                       <th style={{ padding: "8px", textAlign: "left" }}>Producten</th>
+                                      <th style={{ padding: "8px", textAlign: "right" }}>💰 Prijs</th>
                                       <th style={{ padding: "8px", textAlign: "center" }}>Status</th>
                                       <th style={{ padding: "8px", textAlign: "left" }}>Datum</th>
                                     </tr>
@@ -680,6 +698,9 @@ export default function StreamerStats() {
                                           }}>
                                             {order.product_info || "Geen product info"}
                                           </div>
+                                        </td>
+                                        <td style={{ padding: "8px", textAlign: "right", fontWeight: "600", color: "#059669" }}>
+                                          €{(order.total_price || 0).toFixed(2)}
                                         </td>
                                         <td style={{ padding: "8px", textAlign: "center" }}>
                                           <span style={{
