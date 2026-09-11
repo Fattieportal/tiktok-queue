@@ -62,6 +62,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) throw error;
 
+    // BACKFILL: Wijs alle orders toe tot de end-order
+    // Dit zorgt ervoor dat orders die na start-order maar voor check-out binnenkwamen
+    // (ook "shipped by seller" en TikTok Live Unboxing orders) aan de streamer worden toegewezen
+    const { data: endOrderData } = await supabaseAdmin
+      .from("queue_entries")
+      .select("created_at")
+      .eq("id", endOrderId)
+      .single();
+
+    if (endOrderData) {
+      await supabaseAdmin
+        .from("queue_entries")
+        .update({ streamer_id: streamerId })
+        .eq("shop_id", streamer.shop_id)
+        .lte("created_at", endOrderData.created_at)
+        .is("streamer_id", null); // Alleen orders zonder streamer
+      
+      console.log(`[STREAMER-CHECKOUT] Backfill: assigned orders up to ${endOrderData.created_at} to streamer ${streamerId}`);
+    }
+
     return res.status(200).json({ 
       success: true, 
       streamer: data,
