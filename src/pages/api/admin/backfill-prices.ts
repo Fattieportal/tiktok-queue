@@ -88,14 +88,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           if (!shopifyRes.ok) {
+            const errorText = await shopifyRes.text();
             console.log(
-              `[BACKFILL] Failed to fetch order ${order.shopify_order_id}: ${shopifyRes.status}`
+              `[BACKFILL] Failed to fetch order ${order.shopify_order_id}: ${shopifyRes.status} - ${errorText}`
             );
             continue;
           }
 
           const data = (await shopifyRes.json()) as ShopifyOrderResponse;
           const shopifyOrder = data.order;
+          
+          console.log(
+            `[BACKFILL] Got response for order ${order.shopify_order_id}:`,
+            JSON.stringify(shopifyOrder)
+          );
 
           if (!shopifyOrder || shopifyOrder.total_price === undefined) {
             console.log(`[BACKFILL] Order ${order.shopify_order_id} has no total_price`);
