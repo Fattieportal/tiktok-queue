@@ -62,24 +62,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) throw error;
 
-    // BACKFILL: Wijs alle orders toe tot de end-order
+    // BACKFILL: Wijs alle orders toe tot de end-order aan deze streamer
     // Dit zorgt ervoor dat orders die na start-order maar voor check-out binnenkwamen
     // (ook "shipped by seller" en TikTok Live Unboxing orders) aan de streamer worden toegewezen
     const { data: endOrderData } = await supabaseAdmin
       .from("queue_entries")
-      .select("created_at")
+      .select("created_at, id")
       .eq("id", endOrderId)
       .single();
 
     if (endOrderData) {
-      await supabaseAdmin
-        .from("queue_entries")
-        .update({ streamer_id: streamerId })
-        .eq("shop_id", streamer.shop_id)
-        .lte("created_at", endOrderData.created_at)
-        .is("streamer_id", null); // Alleen orders zonder streamer
-      
-      console.log(`[STREAMER-CHECKOUT] Backfill: assigned orders up to ${endOrderData.created_at} to streamer ${streamerId}`);
+      // Haal start-order op om de range te bepalen
+      const { data: streamerData } = await supabaseAdmin
+        .from("streamers")
+        .select("start_order_id")
+        .eq("id", streamerId)
+        .single();
+
+      if (streamerData && streamerData.start_order_id) {
+        const { data: startOrderData } = await supabaseAdmin
+          .from("queue_entries")
+          .select("created_at")
+          .eq("id", streamerData.start_order_id)
+          .single();
+
+        if (startOrderData) {
+          // Wijs alle orders toe TUSSEN start en end order aan deze streamer
+          // (overschrijf ook orders zonder streamer_id)
+          await supabaseAdmin
+            .from("queue_entries")
+            .update({ streamer_id: streamerId })
+            .eq("shop_id", streamer.shop_id)
+            .gte("created_at", startOrderData.created_at)
+            .lte("created_at", endOrderData.created_at);
+          
+          console.log(`[STREAMER-CHECKOUT] Backfill: assigned all orders between ${startOrderData.created_at} and ${endOrderData.created_at} to streamer ${streamerId}`);
+        }
+      }
     }
 
     return res.status(200).json({ 
