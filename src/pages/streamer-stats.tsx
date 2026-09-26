@@ -49,6 +49,8 @@ export default function StreamerStats() {
   const [expandedStreamer, setExpandedStreamer] = useState<string | null>(null);
   const [showAddStreamer, setShowAddStreamer] = useState(false);
   const [newStreamerName, setNewStreamerName] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Check of streamer key geldig is
   const handleLogin = async (e: React.FormEvent) => {
@@ -252,8 +254,42 @@ export default function StreamerStats() {
     });
   };
 
-  const totalOrders = streamers.reduce((sum, s) => sum + s.total_orders, 0);
-  const totalRevenue = streamers.reduce((sum, s) => sum + (s.total_revenue || 0), 0);
+  // Filter streamers based on date range
+  const filteredStreamers = streamers.map(streamer => {
+    if (!dateFrom && !dateTo) return streamer;
+
+    const filtered = {
+      ...streamer,
+      order_details: (streamer.order_details || []).filter((order: OrderDetail) => {
+        const orderDate = new Date(order.created_at);
+        if (dateFrom) {
+          const fromDate = new Date(dateFrom);
+          if (orderDate < fromDate) return false;
+        }
+        if (dateTo) {
+          const toDate = new Date(dateTo);
+          toDate.setHours(23, 59, 59, 999);
+          if (orderDate > toDate) return false;
+        }
+        return true;
+      })
+    };
+
+    // Recalculate stats for filtered orders
+    if (filtered.order_details) {
+      const filteredOrders = filtered.order_details;
+      filtered.total_orders = filteredOrders.length;
+      filtered.total_revenue = filteredOrders.reduce((sum: number, o: OrderDetail) => sum + (o.total_price || 0), 0);
+      filtered.average_order_value = filteredOrders.length > 0 
+        ? Math.round((filtered.total_revenue / filteredOrders.length) * 100) / 100
+        : 0;
+    }
+
+    return filtered;
+  });
+
+  const totalOrders = filteredStreamers.reduce((sum, s) => sum + s.total_orders, 0);
+  const totalRevenue = filteredStreamers.reduce((sum, s) => sum + (s.total_revenue || 0), 0);
 
   return (
     <div
@@ -515,11 +551,62 @@ export default function StreamerStats() {
           }}
         >
           <div style={{ padding: "20px", borderBottom: "2px solid #f0f0f0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <h2 style={{ margin: 0 }}>Streamer Overzicht</h2>
               <div style={{ fontSize: "13px", color: "#6b7280" }}>
                 💡 Klik op ▶ om orders te bekijken
               </div>
+            </div>
+            
+            {/* Date Filter */}
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <div>
+                <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>Van:</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "8px",
+                    border: "1px solid #e0e0e0",
+                    fontSize: "14px"
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>Tot:</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "8px",
+                    border: "1px solid #e0e0e0",
+                    fontSize: "14px"
+                  }}
+                />
+              </div>
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => {
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    marginTop: "20px",
+                    background: "#f0f0f0",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "14px"
+                  }}
+                >
+                  ✕ Filter wissen
+                </button>
+              )}
             </div>
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -561,7 +648,7 @@ export default function StreamerStats() {
                     </td>
                   </tr>
                 ) : (
-                  streamers.map((streamer) => (
+                  filteredStreamers.map((streamer) => (
                     <>
                       <tr
                         key={streamer.id}
