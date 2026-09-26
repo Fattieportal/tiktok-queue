@@ -133,6 +133,40 @@ export default function StreamerStats() {
     }
   };
 
+  const handleDeleteStreamer = async (streamerId: string, streamerName: string) => {
+    if (!confirm(`Weet je zeker dat je streamer "${streamerName}" wilt VERWIJDEREN? Dit kan niet ongedaan gemaakt worden!`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const r = await fetch(`/api/streamers/delete?key=${encodeURIComponent(streamerKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ streamerId }),
+      });
+
+      if (r.ok) {
+        alert(`Streamer "${streamerName}" is verwijderd!`);
+        // Refresh data
+        const statsR = await fetch(
+          `/api/streamers/list?key=${encodeURIComponent(streamerKey)}&shopId=${selectedShop?.id}`
+        );
+        if (statsR.ok) {
+          const data = await statsR.json();
+          setStreamers(data.streamers || []);
+        }
+      } else {
+        const err = await r.json();
+        alert(`Fout: ${err.error || "Onbekende fout"}`);
+      }
+    } catch {
+      alert("Fout bij verwijderen streamer");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAddStreamer = async () => {
     if (!newStreamerName.trim() || !selectedShop) {
       alert("Voer een streamer naam in!");
@@ -744,6 +778,24 @@ export default function StreamerStats() {
                               Check-out
                             </button>
                           )}
+                          <button
+                            onClick={() => handleDeleteStreamer(streamer.id, streamer.name)}
+                            disabled={isLoading}
+                            style={{
+                              padding: "6px 12px",
+                              background: "#dc2626",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "6px",
+                              cursor: isLoading ? "not-allowed" : "pointer",
+                              fontSize: "13px",
+                              fontWeight: "600",
+                              opacity: isLoading ? 0.5 : 1,
+                              marginLeft: streamer.is_active ? "8px" : "0"
+                            }}
+                          >
+                            🗑️ Verwijderen
+                          </button>
                         </td>
                       </tr>
                       
