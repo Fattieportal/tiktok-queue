@@ -41,6 +41,8 @@ type ShopifyOrderCreatedWebhook = {
   source_identifier?: string | null;
   source_name?: string | null;
   tags?: string | null;
+  total_price?: string | number | null;
+  currency?: string | null;
 };
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -215,6 +217,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const productInfo = formatProductInfo(order.line_items);
 
+  // Extract total price and currency
+  const totalPrice = order.total_price ? parseFloat(String(order.total_price)) : null;
+  const currency = (order.currency || "EUR").toUpperCase();
+
   // Haal actieve streamer op voor deze shop
   const { data: activeStreamer } = await supabaseAdmin
     .from("streamers")
@@ -231,6 +237,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     status: "waiting",
     shop_id: shop.id,
     streamer_id: activeStreamer?.id || null,
+    total_price: totalPrice,
+    currency: currency,
     is_shipped_by_seller: isShippedBySeller,
   });
 
