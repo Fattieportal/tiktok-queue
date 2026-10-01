@@ -51,6 +51,8 @@ export default function StreamerStats() {
   const [newStreamerName, setNewStreamerName] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [timeFrom, setTimeFrom] = useState("");
+  const [timeTo, setTimeTo] = useState("");
 
   // Check of streamer key geldig is
   const handleLogin = async (e: React.FormEvent) => {
@@ -288,23 +290,35 @@ export default function StreamerStats() {
     });
   };
 
-  // Filter streamers based on date range
+  // Filter streamers based on date and time range
   const filteredStreamers = streamers.map(streamer => {
-    if (!dateFrom && !dateTo) return streamer;
+    if (!dateFrom && !dateTo && !timeFrom && !timeTo) return streamer;
 
     const filtered = {
       ...streamer,
       order_details: (streamer.order_details || []).filter((order: OrderDetail) => {
         const orderDate = new Date(order.created_at);
+        
         if (dateFrom) {
           const fromDate = new Date(dateFrom);
+          if (timeFrom) {
+            const [hours, minutes] = timeFrom.split(':');
+            fromDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
+          }
           if (orderDate < fromDate) return false;
         }
+        
         if (dateTo) {
           const toDate = new Date(dateTo);
-          toDate.setHours(23, 59, 59, 999);
+          if (timeTo) {
+            const [hours, minutes] = timeTo.split(':');
+            toDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 59, 999);
+          } else {
+            toDate.setHours(23, 59, 59, 999);
+          }
           if (orderDate > toDate) return false;
         }
+        
         return true;
       })
     };
@@ -593,13 +607,27 @@ export default function StreamerStats() {
             </div>
             
             {/* Date Filter */}
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
               <div>
                 <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>Van:</label>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "8px",
+                    border: "1px solid #e0e0e0",
+                    fontSize: "14px"
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>Van Uur:</label>
+                <input
+                  type="time"
+                  value={timeFrom}
+                  onChange={(e) => setTimeFrom(e.target.value)}
                   style={{
                     padding: "8px",
                     borderRadius: "8px",
@@ -622,11 +650,27 @@ export default function StreamerStats() {
                   }}
                 />
               </div>
-              {(dateFrom || dateTo) && (
+              <div>
+                <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>Tot Uur:</label>
+                <input
+                  type="time"
+                  value={timeTo}
+                  onChange={(e) => setTimeTo(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "8px",
+                    border: "1px solid #e0e0e0",
+                    fontSize: "14px"
+                  }}
+                />
+              </div>
+              {(dateFrom || dateTo || timeFrom || timeTo) && (
                 <button
                   onClick={() => {
                     setDateFrom("");
                     setDateTo("");
+                    setTimeFrom("");
+                    setTimeTo("");
                   }}
                   style={{
                     padding: "8px 16px",
