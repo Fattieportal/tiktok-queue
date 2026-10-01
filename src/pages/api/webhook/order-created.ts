@@ -222,6 +222,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     product_info: productInfo,
     status: "waiting",
     shop_id: shop.id,
+    is_shipped_by_seller: isShippedBySeller,
   });
 
   // Duplicate = ok (order al eerder toegevoegd)

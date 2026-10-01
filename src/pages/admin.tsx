@@ -315,34 +315,6 @@ export default function Admin() {
     }
   };
 
-  const handleDeleteStreamer = async (streamerId: string, streamerName: string) => {
-    if (!confirm(`Weet je zeker dat je streamer "${streamerName}" wilt VERWIJDEREN? Dit kan niet ongedaan gemaakt worden!`)) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const r = await fetch(`/api/streamers/delete?key=${encodeURIComponent(adminKey)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ streamerId }),
-      });
-
-      if (r.ok) {
-        alert(`Streamer "${streamerName}" is verwijderd!`);
-        await fetchAvailableStreamers();
-      } else {
-        const err = await r.json();
-        alert(`Fout: ${err.error || "Onbekende fout"}`);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Fout bij verwijderen streamer");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleStreamerCheckOut = async () => {
     if (!activeStreamer || !selectedShop) return;
 
@@ -1269,21 +1241,6 @@ export default function Admin() {
                     >
                       Check-in
                     </button>
-
-                    {streamerName && availableStreamers.find(s => s.name === streamerName) && (
-                      <button
-                        onClick={() => {
-                          const streamer = availableStreamers.find(s => s.name === streamerName);
-                          if (streamer) {
-                            handleDeleteStreamer(streamer.id, streamer.name);
-                          }
-                        }}
-                        disabled={isLoading}
-                        className="w-full px-4 py-2 bg-red-500/30 text-red-200 rounded-xl hover:bg-red-500/50 transition-all disabled:opacity-50 font-medium text-sm"
-                      >
-                        🗑️ Streamer verwijderen
-                      </button>
-                    )}
                   </div>
                   <p className="text-xs text-slate-400 mt-2">
                     💡 Check-in streamer voordat de live begint. Alle nieuwe orders worden automatisch toegeschreven.

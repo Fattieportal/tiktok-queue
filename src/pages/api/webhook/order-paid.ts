@@ -186,6 +186,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const hasNoShippingInfo = shippingTitles.length === 0;
 
   // Accept if: (has valid shipping method OR no shipping info) AND not mystery box
+  // NOTE: Shipped by Seller orders are now ACCEPTED and stored with is_shipped_by_seller flag
   if ((!isTikTokUnboxing && !isShippedBySeller && !hasNoShippingInfo) || isMysteryExcluded) {
     return res.status(200).json({ ok: true, status: "ignored", shippingTitles, hasNoShippingInfo });
   }
@@ -228,6 +229,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     streamer_id: activeStreamer?.id || null,
     total_price: totalPrice,
     currency: currency,
+    is_shipped_by_seller: isShippedBySeller,
   });
 
   // Treat unique/duplicate as ok (Shopify can retry)
